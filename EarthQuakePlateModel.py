@@ -1,38 +1,36 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 16 16:34:21 2018
-
-@author: yu
-"""
 import os
 import numpy as np
 import pdb
 import tensorflow as tf
 from tensorflow.python.ops import nn_ops
 import matplotlib.pylab as plt
+import pickle
 import pywt
+import glob
+
 
 #########################################
 class EarthQuakePlateModel:
 	logPath = 'logs'
+	dataPath = 'data'
 	visualPath = 'visualization'
-	nCell = 8
-	nYear = 10000
-	yInd = 1
-	vInds = [2,3,4,5,6,7,8,9]
-	yV = np.zeros([nYear,nCell])
-	
-	
+
 	#--------------------------
-	def __init__(self,logName):
+	def __init__(self,logName,nCell,nYear):
 		self.logName = logName
 		self.logFullPath = os.path.join(self.logPath,logName)
+
+		self.nCell = nCell
+		self.nYear = nYear
+		self.yInd = 1
+		self.vInds = [2,3,4,5,6,7,8,9]
+		self.yV = np.zeros([nYear,nCell])
 	#--------------------------
 
 	#--------------------------
 	#データの読み込み
 	def loadABLV(self):
-		print('reading',self.logFullPath)
 		self.data = open(self.logFullPath).readlines()
 		
 		# A, B, Lの取得
@@ -75,7 +73,8 @@ class EarthQuakePlateModel:
 		
 	#--------------------------
 	# Vの生データのプロット
-	def plotV(self,isPlot=False,isYearly=False):
+	def plotV(self,isPlotShow=False,isYearly=False):
+		plt.close()
 		fig, figInds = plt.subplots(nrows=8, sharex=True)
 	
 		for figInd in np.arange(len(figInds)):
@@ -83,33 +82,72 @@ class EarthQuakePlateModel:
 			if isYearly:
 				figInds[figInd].plot(np.arange(self.nYear), self.yV[:,figInd])
 
-		plt.hold(True)
-		
-		fullpath = os.path.join(self.visualPath,"{}_data.png".format(self.logName))
-		plt.savefig(fullpath)
+		fullPath = os.path.join(self.visualPath,"{}_data.png".format(self.logName))
+		plt.savefig(fullPath)
 
-		if isPlot:
+		if isPlotShow:
 			fig.show()
 			plt.show()
 	#--------------------------
 	
 	#--------------------------
-	def plotVWavelet(self):
-		fig, figInds = plt.subplots(nrows=8, sharex=True)
+	# Wavelet画像に変換し保存
+	def convV2Wavelet(self,width=30,isPlotShow=False,isSavePkl=False):
+	
+		plt.close()
 		
-		width = 30
-		widths = np.arange(1,width)
+		fig, figInds = plt.subplots(nrows=self.nCell, sharex=True)
+	
+		# 係数マップ画像領域の確保
+		images = np.zeros([self.nCell,width,self.nYear])
+		
+		# 周波数
+		widths = np.arange(1,width+1)
+		
+		for cellInd in np.arange(self.nCell):
+			# continuous waveletをかけて、係数マップと周波数を出力
+			images[cellInd], freqs = pywt.cwt(self.yV[:,cellInd], widths, 'mexh')
+			
+			# 係数マップのプロット
+			figInds[cellInd].imshow(images[cellInd], extent=[1, self.nYear, widths[-1], widths[0]], cmap='gray',aspect='auto',vmax=abs(images[cellInd]).max(), vmin=-abs(images[cellInd]).max())
+		
+		# プロット画像の保存
+		fullPath = os.path.join(self.visualPath,"{}_cwt.png".format(self.logName))
+		plt.savefig(fullPath)
+
+		if isPlotShow:
+			fig.show()
+			plt.show()
+
+		# pklデータの保存
+		fullPath = os.path.join(self.dataPath,"{}.pkl".format(self.logName))
+		with open(fullPath,'wb') as fp:
+			pickle.dump(images,fp)
+			pickle.dump(log.B,fp)
+			
+		return images
+	#--------------------------
+		
+	#--------------------------
+	# Wavelet画像のプロット（縦：周波数、横：シフト）
+	def plotVWavelet(self,width=30):
+		plt.close()
+		fig, figInds = plt.subplots(nrows=self.nCell, sharex=True)
+		
+		# 周波数
+		widths = np.arange(1,width+1)
 		
 		for figInd in np.arange(len(figInds)):
-			cwtmatr, freqs = pywt.cwt(self.V[:,2+figInd], widths, 'mexh')
-			pdb.set_trace()
+			# continuous waveletをかけて、係数マップと周波数を出力
+			cwtmatr, freqs = pywt.cwt(self.yV[:,figInd], widths, 'mexh')
 			
-			figInds[figInd].imshow(cwtmatr, extent=[-1, 1, 1, 30], cmap='PRGn', aspect='auto',vmax=abs(cwtmatr).max(), vmin=-abs(cwtmatr).max())
-
+			# 係数マップのプロット
+			figInds[figInd].imshow(cwtmatr, extent=[1, self.nYear, widths[-1], widths[0]], cmap='gray', aspect='auto',vmax=abs(cwtmatr).max(), vmin=-abs(cwtmatr).max())
+			
 		plt.hold(True)
 				
-		fullpath = os.path.join(self.visualPath,"{}_waveletdata.png".format(self.logName))
-		plt.savefig(fullpath)
+		fullPath = os.path.join(self.visualPath,"{}_cwt.png".format(self.logName))
+		plt.savefig(fullPath)
 
 		fig.show()
 		plt.show()
@@ -117,78 +155,106 @@ class EarthQuakePlateModel:
 
 #########################################
 
+#########################################
+class Data:
+	logPath = 'logs'
+	dataPath = 'data'
+	visualPath = 'visualization'
+
+	#--------------------------
+	def __init__(self,fname="log_25*",trainRatio=0.8,nCell=8,nFreqs=30, sYear=1000, eYear=2000, bInd=0, isTensorflow=True):
+
+		# pklファイルの一覧
+		fullPath = os.path.join(self.dataPath,fname)
+		files = glob.glob(fullPath)
+		
+		# データの領域確保
+		self.nData = len(files)
+		
+		nYear = eYear-sYear
+		self.X = np.zeros([self.nData, nFreqs, nYear, nCell])
+		self.Y = np.zeros([self.nData])
+		
+		# データの読み込み
+		for fID in np.arange(self.nData):
+			file = files[fID].split('\\')[1]
+			fullPath = os.path.join(self.dataPath,file)
+			
+			with open(fullPath,'rb') as fp:
+				tmpX = pickle.load(fp)
+				tmpY = pickle.load(fp)
+				
+			# データの切り抜き
+			tmpX = tmpX[:,:,sYear:eYear]
+		
+			# tensorflow用に変形
+			if isTensorflow:
+				self.X[fID] = np.transpose(tmpX,(1,2,0))
+				self.Y[fID] = tmpY[bInd]
+			else:
+				self.X[fID] = tmpX
+				self.Y = tmpY
+
+		# 学習データとテストデータ数
+		self.nTrain = np.floor(self.nData * trainRatio).astype(int)
+		self.nTest = self.nData - self.nTrain
+		
+		# ランダムにインデックスをシャッフル
+		self.randInd = np.random.permutation(self.nData)
+
+		# 学習データ
+		self.xTrain = self.X[self.randInd[0:self.nTrain]]
+		self.yTrain = self.Y[self.randInd[0:self.nTrain]]
+
+		# 評価データ
+		self.xTest = self.X[self.randInd[self.nTrain:]]
+		self.yTest = self.Y[self.randInd[self.nTrain:]]
+		
+		# ミニバッチの初期化
+		self.batchCnt = 0
+		self.batchRandInd = np.random.permutation(self.nTrain)
+
+	#------------------------------------
+	# ミニバッチの取り出し
+	def nextBatch(self,batchSize,isTensorflow=True):
+
+		sInd = batchSize * self.batchCnt
+		eInd = sInd + batchSize
+
+		batchX = self.xTrain[self.batchRandInd[sInd:eInd]]
+		batchY = self.yTrain[self.batchRandInd[sInd:eInd]]
+		
+		if eInd+batchSize > self.nTrain:
+			self.batchCnt = 0
+		else:
+			self.batchCnt += 1
+
+		return batchX, batchY
+	#------------------------------------
+	
+#########################################
+
 ############## MAIN #####################
 if __name__ == "__main__":
 	
+	nYear = 10000
+	nCell = 8
+	nFreqs = 30
+	
 	#Reading load log.txt
-	
-	log = EarthQuakePlateModel("log.txt")
-	log.loadABLV()
-	log.convV2YearlyData()
-	log.plotV(isPlot=True,isYearly=True)
-	#log.plotVWavelet()
-	
-	log1 = EarthQuakePlateModel("log_1.txt")
-	log1.loadABLV()
-	log1.convV2YearlyData()	
-	log1.plotV(isPlot=True,isYearly=True)
-	#log1.plotVWavelet()
-	
-	pdb.set_trace()
-	
-'''
-################### tensor #######################
-	z_dim = 10
-	num_v = 16270 #1627*10
-	batch_size = 200
-	
-	x = tf.placeholder(tf.float32,shape=[None,num_v,1])
-	#y = tf.placeholder(tf.float32,shape=[None,,1])
-	
-	trainz = Data.encoder(x,z_dim)
-	trainx = Data.decoder(trainz,z_dim)
-	
-	testz = Data.encoder(x,z_dim,reuse=True)
-	testx = Data.decoder(testz,z_dim,reuse=True)
-	
-	true_samples = tf.random_normal(tf.stack[200,z_dim])
-	loss_mmd = Data.compute_mmd(true_samples,trainz)
-	loss_nll = tf.reduce_mean(tf.square(trainx))
-	loss = loss_nll + loss_mmd
-	trainer = tf.train.AdamOptimizer(1e-3).minimize(loss)
-	
-	
-	sess = tf.Session()
-	sess.run(tf.global_variables_initializer())
-	
-	pdb.set_trace()
-	
-	for i in range(1000):
-		batch_x = log1.nextBatch(batch_size)
-		_, nll, mmd, train_xr, train_z = sess.run([trainer, loss_nll, loss_mmd, trainx, trainz], feed_dict={x: batch_x})
-		#if i % 100 == 0:
-		 #   print("iteration: %d, Negative log likelihood is %f, mmd loss is %f" % (i,nll, mmd))
-		#if i % 10000 == 0:
-		 #   test_xr,test_z = sess.run([test_xr_op,test_z_op], feed_dict={x: myLaser.xTest})
-	
-	# save model to file
-		#saver = tf.train.Saver()
-		#saver.save(sess,"../models/1d_{}.ckpt".format(i))"""
+	files = glob.glob('logs\\*.txt')
 
+	for fID in np.arange(len(files)):
+		print('reading',files[fID])
+
+		file = files[fID].split('\\')[1]
 		
-   
-	
-	"""listdata = []
-	for i in np.arange(1,9):
-		datasplit = log1.file[i].split(",")
-		datasplit1 = datasplit[1]
-		listdata.append(datasplit1)
-	
-	for j in np.arange(83,1710):
-		data = log1.file[j].split(",")
-		listdata.append(data)
-	
-	print(listdata)
-	pdb.set_trace()"""
-'''	
-	
+		# 地震プレートモデル用のオブジェクト
+		log = EarthQuakePlateModel(file,nCell=nCell,nYear=nYear)
+		log.loadABLV()
+		log.convV2YearlyData()
+		log.plotV(isPlotShow=False,isYearly=False)
+		
+		# 入力（waveletの係数マップ画像）と出力（b）の取得
+		log.convV2Wavelet(width=nFreqs,isPlotShow=False,isSavePkl=True)
+#########################################
