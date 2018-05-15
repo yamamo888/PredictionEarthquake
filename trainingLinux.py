@@ -97,11 +97,13 @@ pdb.set_trace()
 xTrain = tf.placeholder(tf.float32, shape=[None, nFreqs, eYear-sYear, nCell])
 yTrain = tf.placeholder(tf.float32, shape=[None])
 predict_op = cnn(xTrain)
+predict_test_op = cnn(xTrain,reuse=True)
 #---------------------
 
 #---------------------
 # loss
 loss_op = tf.reduce_mean(tf.square(predict_op - yTrain))
+loss_test_op = tf.reduce_mean(tf.square(predict_test_op - yTrain))
 trainer = tf.train.AdamOptimizer(1e-3).minimize(loss_op)
 #---------------------
 
@@ -119,7 +121,7 @@ for i in range(10500):
 	if i % 10 == 0:
 		print("iteration: %d, loss: %f" % (i,lossTrain))
 	if i % 500 == 0:
-		lossTest, predictTest  = sess.run([loss_op,predict_op], feed_dict={xTrain:myData.xTest, yTrain:myData.yTest})
+		lossTest, predictTest  = sess.run([loss_test_op,predict_test_op], feed_dict={xTrain:myData.xTest, yTrain:myData.yTest})
 
 		with open("training/process_{}.pickle".format(i), "wb") as fp:
 			pickle.dump(predictTest,fp)
