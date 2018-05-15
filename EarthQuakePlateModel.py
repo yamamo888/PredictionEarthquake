@@ -149,9 +149,9 @@ class EarthQuakePlateModel:
 		fullPath = os.path.join(self.visualPath,"{}_cwt.png".format(self.logName))
 		plt.savefig(fullPath)
 
-		fig.show()
-		plt.show()
-	#--------------------------
+        fig.show()
+        plt.show()
+    #--------------------------
 
 #########################################
 
