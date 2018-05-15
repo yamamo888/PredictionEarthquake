@@ -89,6 +89,7 @@ sYear = 1000
 eYear = 2000
 bInd = 0
 myData = eqp.Data(fname="log_10*",trainRatio=0.8,nCell=nCell,nFreqs=nFreqs, sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=True)
+pdb.set_trace()
 #---------------------
 
 #---------------------
@@ -115,9 +116,9 @@ for i in range(10500):
 	
 	_, lossTrain = sess.run([trainer, loss_op], feed_dict={xTrain:batchX, yTrain:batchY})
 	
-	if i % 100 == 0:
+	if i % 10 == 0:
 		print("iteration: %d, loss: %f" % (i,lossTrain))
-	if i>0 & i % 500 == 0:
+	if i % 500 == 0:
 		lossTest, predictTest  = sess.run([loss_op,predict_op], feed_dict={xTrain:myData.xTest, yTrain:myData.yTest})
 
 		with open("training/process_{}.pickle".format(i), "wb") as fp:

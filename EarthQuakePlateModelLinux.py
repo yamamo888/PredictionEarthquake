@@ -195,6 +195,7 @@ class Data:
 				self.X[fID] = tmpX
 				self.Y = tmpY
 
+
 		# 学習データとテストデータ数
 		self.nTrain = np.floor(self.nData * trainRatio).astype(int)
 		self.nTest = self.nData - self.nTrain

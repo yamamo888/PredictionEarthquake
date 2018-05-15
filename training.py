@@ -89,6 +89,7 @@ sYear = 1000
 eYear = 2000
 bInd = 0
 myData = eqp.Data(fname="log_10*",trainRatio=0.8,nCell=nCell,nFreqs=nFreqs, sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=True)
+pdb.set_trace()
 #---------------------
 
 #---------------------
