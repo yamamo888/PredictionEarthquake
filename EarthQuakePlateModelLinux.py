@@ -196,6 +196,11 @@ class Data:
 				self.Y = tmpY
 
 
+		# Yの正規化(Yが小さすぎるため）
+		self.minY = np.min(self.Y)
+		self.maxY = np.max(self.Y)
+		self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
+		
 		# 学習データとテストデータ数
 		self.nTrain = np.floor(self.nData * trainRatio).astype(int)
 		self.nTest = self.nData - self.nTrain
