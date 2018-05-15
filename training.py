@@ -30,13 +30,16 @@ def pool2d(inputs, ksize, strides):
 
 def fc_relu(inputs, w, b):
 	fc = tf.matmul(inputs, w) + b
+	fc = tf.nn.dropout(fc, keepProb)
 	fc = tf.nn.relu(fc)
 	return fc
 #----------------
 
 def cnn(x, reuse=False):
 	with tf.variable_scope('cnn') as scope:
+		keepProb = 0.5
 		if reuse:
+			keepProb = 1.0
 			scope.reuse_variables()
 	
 		# when padding='SAME', O = I/S
@@ -70,12 +73,12 @@ def cnn(x, reuse=False):
 		# 9*9*32 = 2592 -> 128
 		fcW1 = weight_variable("fcW1", [conv4_dim, 128])
 		fcB1 = bias_variable("fcB1", [128])
-		fc1 = fc_relu(conv4, fcW1, fcB1)
+		fc1 = fc_relu(conv4, fcW1, fcB1, keepProb)
 		
 		# 128 -> 20
 		fcW2 = weight_variable("fcW2", [128, 1])
 		fcB2 = bias_variable("fcB2", [1])
-		fc2 = fc_relu(fc1, fcW2, fcB2)
+		fc2 = fc_relu(fc1, fcW2, fcB2, keepProb)
 		return fc2
 		
 #---------------------
