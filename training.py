@@ -28,7 +28,7 @@ def pool2d(inputs, ksize, strides):
 	pool = tf.nn.max_pool(inputs, ksize=ksize, strides=strides, padding='SAME')
 	return pool
 
-def fc_relu(inputs, w, b):
+def fc_relu(inputs, w, b, keepProb):
 	fc = tf.matmul(inputs, w) + b
 	fc = tf.nn.dropout(fc, keepProb)
 	fc = tf.nn.relu(fc)
@@ -88,7 +88,7 @@ nFreqs = 30
 sYear = 1000
 eYear = 2000
 bInd = 0
-myData = eqp.Data(fname="log_25*",trainRatio=0.8,nCell=nCell,nFreqs=nFreqs, sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=True)
+myData = eqp.Data(fname="log_10*",trainRatio=0.8,nCell=nCell,nFreqs=nFreqs, sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=True)
 #---------------------
 
 #---------------------
@@ -105,19 +105,19 @@ trainer = tf.train.AdamOptimizer(1e-3).minimize(loss_op)
 #---------------------
 
 #---------------------
-batchSize = 3
+batchSize = 50
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
 # Start training
-for i in range(51000):
+for i in range(10500):
 	batchX, batchY = myData.nextBatch(batchSize)
 	
 	_, lossTrain = sess.run([trainer, loss_op], feed_dict={xTrain:batchX, yTrain:batchY})
 	
 	if i % 100 == 0:
 		print("iteration: %d, loss: %f" % (i,lossTrain))
-	if i>0 & i % 5000 == 0:
+	if i>0 & i % 500 == 0:
 		lossTest, predictTest  = sess.run([loss_op,predict_op], feed_dict={xTrain:myData.xTest, yTrain:myData.yTest})
 
 		with open("training/process_{}.pickle".format(i), "wb") as fp:
