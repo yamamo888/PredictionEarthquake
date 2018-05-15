@@ -122,6 +122,8 @@ for i in range(10500):
 
 		with open("training/process_{}.pickle".format(i), "wb") as fp:
 			pickle.dump(predictTest,fp)
+			pickle.dump(myData.xTest,fp)
+			pickle.dump(myData.yTest,fp)
 			pickle.dump(lossTest,fp)
 
 		# save model to file
