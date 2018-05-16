@@ -177,7 +177,7 @@ class Data:
 		
 		# データの読み込み
 		for fID in np.arange(self.nData):
-			file = files[fID].split('\\')[1]
+			file = files[fID].split('/')[1]
 			fullPath = os.path.join(self.dataPath,file)
 			
 			with open(fullPath,'rb') as fp:
@@ -194,6 +194,14 @@ class Data:
 			else:
 				self.X[fID] = tmpX
 				self.Y = tmpY
+
+		# XとYの正規化(Yが小さすぎるため）
+		self.minY = np.min(self.Y)
+		self.maxY = np.max(self.Y)
+		self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
+		#self.minX = np.min(self.X)
+		#self.maxX = np.max(self.X)
+		#self.X = (self.X - self.minX)/(self.maxX-self.minX)
 
 		# 学習データとテストデータ数
 		self.nTrain = np.floor(self.nData * trainRatio).astype(int)
@@ -247,7 +255,7 @@ if __name__ == "__main__":
 	for fID in np.arange(len(files)):
 		print('reading',files[fID])
 
-		file = files[fID].split('\\')[1]
+		file = files[fID].split('/')[1]
 		
 		# 地震プレートモデル用のオブジェクト
 		log = EarthQuakePlateModel(file,nCell=nCell,nYear=nYear)
