@@ -195,10 +195,17 @@ class Data:
 				self.X[fID] = tmpX
 				self.Y = tmpY
 
+		# 平均画像の作成
+		meanImg = np.mean(self.X, axis=0)
+
 		# XとYの正規化(Yが小さすぎるため）
 		self.minY = np.min(self.Y)
 		self.maxY = np.max(self.Y)
 		self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
+
+		# 平均画像を引く
+		self.X = self.X - meanImg
+
 		#self.minX = np.min(self.X)
 		#self.maxX = np.max(self.X)
 		#self.X = (self.X - self.minX)/(self.maxX-self.minX)
