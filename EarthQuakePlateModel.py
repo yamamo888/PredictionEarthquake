@@ -162,7 +162,7 @@ class Data:
 	visualPath = 'visualization'
 
 	#--------------------------
-	def __init__(self,fname="log_25*",trainRatio=0.8,nCell=8,nFreqs=30, sYear=1000, eYear=2000, bInd=0, isTensorflow=True):
+	def __init__(self,fname="log_25*",trainRatio=0.8,nCell=8,nFreqs=30, sYear=1000, eYear=2000, bInd=0, isTensorflow=True,isWindows=True):
 
 		# pklファイルの一覧
 		fullPath = os.path.join(self.dataPath,fname)
@@ -177,7 +177,12 @@ class Data:
 		
 		# データの読み込み
 		for fID in np.arange(self.nData):
-			file = files[fID].split('/')[1]
+			
+			if isWindows:
+				file = files[fID].split('\\')[1]
+			else:
+				file = files[fID].split('/')[1]
+				
 			fullPath = os.path.join(self.dataPath,file)
 			
 			with open(fullPath,'rb') as fp:
@@ -196,7 +201,7 @@ class Data:
 				self.Y = tmpY
 
 		# 平均画像の作成
-		meanImg = np.mean(self.X, axis=0)
+		self.meanImg = np.mean(self.X, axis=0)
 
 		# XとYの正規化(Yが小さすぎるため）
 		self.minY = np.min(self.Y)
@@ -204,7 +209,7 @@ class Data:
 		self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
 
 		# 平均画像を引く
-		self.X = self.X - meanImg
+		self.X = self.X - self.meanImg
 
 		#self.minX = np.min(self.X)
 		#self.maxX = np.max(self.X)
@@ -252,6 +257,7 @@ class Data:
 ############## MAIN #####################
 if __name__ == "__main__":
 	
+	isWindows = True
 	nYear = 10000
 	nCell = 8
 	nFreqs = 30
@@ -262,7 +268,10 @@ if __name__ == "__main__":
 	for fID in np.arange(len(files)):
 		print('reading',files[fID])
 
-		file = files[fID].split('/')[1]
+		if isWindows:
+			file = files[fID].split('\\')[1]
+		else:
+			file = files[fID].split('/')[1]
 		
 		# 地震プレートモデル用のオブジェクト
 		log = EarthQuakePlateModel(file,nCell=nCell,nYear=nYear)
