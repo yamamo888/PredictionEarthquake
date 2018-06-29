@@ -289,7 +289,7 @@ class Data:
         
             
     
-    def FFT(self,slice_size=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False):
+    def FFT(self,slice_size=25,eFrq=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False):
         
         
         dataflag = False
@@ -299,7 +299,7 @@ class Data:
             fft_amp = np.abs(np.fft.fft(self.kde[dataInd,:,:]))
             
             # 1(Hz)から考える
-            fft_amp = fft_amp[:,1:]
+            fft_amp = fft_amp[:,1:eFrq]
             
             fft_amp = fft_amp[np.newaxis,:,:]
             
@@ -415,7 +415,7 @@ if __name__ == "__main__":
     data.KDE(nYear=8000)
     
     #data.Wavelet(width=100)
-    data.FFT(slice_size=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False)
+    data.FFT(slice_size=25,eFrq=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False)
     
 ############################################
 
