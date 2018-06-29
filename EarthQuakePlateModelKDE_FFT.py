@@ -218,13 +218,13 @@ class Data:
 				self.Y = np.append(self.Y, tmpY[bInd])
 			
 		# XとYの正規化(Yが小さすぎるため,そのもののbを可視化したいときはYの正規化だけはずす）
-		#self.minY = np.min(self.Y)
-		#self.maxY = np.max(self.Y)
-		#self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
+		self.minY = np.min(self.Y)
+		self.maxY = np.max(self.Y)
+		self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
 		
-		#self.minX = np.min(self.X)
-		#self.maxX = np.max(self.X)
-		#self.X = (self.X - self.minX)/(self.maxX-self.minX)
+		self.minX = np.min(self.X)
+		self.maxX = np.max(self.X)
+		self.X = (self.X - self.minX)/(self.maxX-self.minX)
 		
 		self.nTrain = np.floor(self.nData * trainRatio).astype(int)
 		self.nTest = self.nData - self.nTrain
