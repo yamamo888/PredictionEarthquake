@@ -24,8 +24,8 @@ import scipy.optimize
 
 #########################################
 class EarthQuakePlateModel:
-    logPath = 'logs_tmp'
-    dataPath = 'data_tmp'
+    logPath = 'logs'
+    dataPath = 'data'
     visualPath = 'visualization'
 
     #--------------------------
@@ -88,7 +88,7 @@ class EarthQuakePlateModel:
         
     #--------------------------
     # Vの生データのプロット
-    def plotV(self,isPlotShow=False,isYearly=True):
+    def plotV(self,isPlotShow=False,isYearly=True,prefix='yV'):
         plt.close()
         fig, figInds = plt.subplots(nrows=8, sharex=True)
     
@@ -104,7 +104,7 @@ class EarthQuakePlateModel:
             plt.show()            
         
         # pklデータの保存
-        fullPath = os.path.join(self.dataPath,"yV{}.pkl".format(self.logName))
+        fullPath = os.path.join(self.dataPath,"{}{}.pkl".format(prefix,self.logName))
         with open(fullPath,'wb') as fp:
             pickle.dump(self.yV,fp)
             pickle.dump(log.B,fp)
@@ -116,8 +116,8 @@ class EarthQuakePlateModel:
 
 #########################################
 class Data:
-    logPath = 'logs_tmp'
-    dataPath = 'data_tmp'
+    logPath = 'logs'
+    dataPath = 'data'
     visualPath = 'visualization'
 
     #--------------------------
@@ -163,9 +163,9 @@ class Data:
                 #self.Y = tmpY
     
         # XとYの正規化(Yが小さすぎるため,そのもののbを可視化したいときはYの正規化だけはずす）
-        #self.minY = np.min(self.Y)
-        #self.maxY = np.max(self.Y)
-        #self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
+        self.minY = np.min(self.Y)
+        self.maxY = np.max(self.Y)
+        self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
         
         self.minX = np.min(self.X)
         self.maxX = np.max(self.X)
@@ -186,8 +186,8 @@ class Data:
         kde = np.zeros([self.nCell,nYear])
         
         v_divid = 10.0
-        bw = 0.1
-        
+        bw = 0.01
+    
         dataflag = False
         for dataInd in np.arange(self.nData):
             
@@ -207,10 +207,10 @@ class Data:
                 
                 # 年数を任意の回数増やした(0回のデータは消える)
                 eqp_v = np.repeat(np.arange(0,nYear),eqp_num)
-                
+            
                 # bw値　指定
                 x_grid = np.arange(0,8000)
-                kde_model = stats.gaussian_kde(eqp_v)
+                kde_model = stats.gaussian_kde(eqp_v,bw_method=bw)
                 kde_model = kde_model(x_grid)
                 
                 
@@ -224,20 +224,20 @@ class Data:
                     kde_cell = np.concatenate((kde_cell,kde_model),axis=0)
                 
                 kde = kde_cell[np.newaxis,:,:]
-                #pdb.set_trace()
+                
             if not dataflag:
                 self.kde = kde
                 dataflag = True
             else:
                 self.kde = np.concatenate((self.kde,kde),axis=0)
         
-        fig,figInds = plt.subplots(nrows=8,sharex=True)
-        for figInd in np.arange(len(figInds)):
+        #fig,figInds = plt.subplots(nrows=8,sharex=True)
+        #for figInd in np.arange(len(figInds)):
             
-            figInds[figInd].plot(self.kde[0,figInd,:])
+         #   figInds[figInd].plot(self.kde[0,figInd,:])
         
-        plt.show()
-        
+        #plt.show()
+        #pdb.set_trace()
         
         return self.kde #[nData,nCell,nYear]
         
@@ -309,6 +309,7 @@ class Data:
                 dataflag = True
             else:
                 self.fft_amp = np.concatenate((self.fft_amp,fft_amp),axis=0)
+        pdb.set_trace()
 
         # ナイキスト周波数を考慮した範囲([]内変更必要) 
         #NyquistInd = int(len(fft_amp[0,0,:])/2)
@@ -392,7 +393,7 @@ if __name__ == "__main__":
     isWindows = True
     
     #Reading load log.txt
-    files = glob.glob('logs_tmp\\*.txt')
+    files = glob.glob('logs\\*.txt')
     
     for fID in np.arange(len(files)):
         print('reading',files[fID])
@@ -406,7 +407,7 @@ if __name__ == "__main__":
         log = EarthQuakePlateModel(file,nCell=8,nYear=10000)
         log.loadABLV()
         log.convV2YearlyData()
-        log.plotV(isPlotShow=False,isYearly=False)
+        log.plotV(isPlotShow=False,isYearly=False,prefix='yV')
     
     
     
