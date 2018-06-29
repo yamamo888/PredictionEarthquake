@@ -19,16 +19,16 @@ import EarthQuakePlateModelKDE_FFT as eqp
 #---------------------
 # Define some handy network layers
 def weight_variable(name,shape):
-    return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1))
+	return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1))
 
 def bias_variable(name,shape):
-    return tf.get_variable(name,shape,initializer=tf.constant_initializer(0.1))
+	return tf.get_variable(name,shape,initializer=tf.constant_initializer(0.1))
 
 def softmax(inputs,w,b,keepProb):
-    softmax = tf.matmul(inputs,w) + b
-    softmax = tf.nn.dropout(softmax, keepProb)
-    softmax = tf.nn.softmax(softmax)
-    return softmax
+	softmax = tf.matmul(inputs,w) + b
+	softmax = tf.nn.dropout(softmax, keepProb)
+	softmax = tf.nn.softmax(softmax)
+	return softmax
 
 def fc_relu(inputs, w, b, keepProb):
 	relu = tf.matmul(inputs, w) + b
@@ -41,23 +41,23 @@ def fc_relu(inputs, w, b, keepProb):
 #---------------------
 
 def nn(x,reuse=False):
-    with tf.variable_scope('nn') as scope:  
-        keepProb = 0.5 
-        if reuse:
-            keepProb = 1.0            
-            scope.reuse_variables()
+	with tf.variable_scope('nn') as scope:  
+		keepProb = 0.5 
+		if reuse:
+			keepProb = 1.0			
+			scope.reuse_variables()
 
-        #input -> hidden
-        w1 = weight_variable('w1',[8*10,20])
-        b1 = bias_variable('b1',[20])
-        h = fc_relu(x,w1,b1,keepProb) 
+		#input -> hidden
+		w1 = weight_variable('w1',[8*10,20])
+		b1 = bias_variable('b1',[20])
+		h = fc_relu(x,w1,b1,keepProb) 
 
-        #hidden -> output
-        w2 = weight_variable('w2',[20,1])
-        b2 = bias_variable('b2',[1])
-        y = fc_relu(h,w2,b2,keepProb)
+		#hidden -> output
+		w2 = weight_variable('w2',[20,1])
+		b2 = bias_variable('b2',[1])
+		y = fc_relu(h,w2,b2,keepProb)
 
-        return y
+		return y
 
 # load data
 nCell = 8
@@ -99,29 +99,29 @@ testY = myData.yTest
 
 # Start training
 for i in range(70000):
-    
-    batchX, batchY = myData.nextBatch(batchSize)
-    batchX = np.reshape(batchX,[-1,nCell*nWindow])
-    #pdb.set_trace()
-    
-    _, lossTrain, predTrain = sess.run([trainer, loss, predict_op], feed_dict={x:batchX, y_:batchY})
-    
-    
-    if i % 100 == 0:
-        print("iteration: %d,loss: %f" % (i,lossTrain))
-    if i % 500 == 0:
-        lossTest, predTest  = sess.run([loss_test, predict_test_op], feed_dict={x:testX, y_:testY})
-        
-        with open("training/process_{}.pickle".format(i), "wb") as fp:
-            pickle.dump(predTest,fp)
-            pickle.dump(myData.xTest,fp)
-            pickle.dump(myData.yTest,fp)
-            pickle.dump(lossTest,fp)
-            #pickle.dump(myData.minY,fp)
-            #pickle.dump(myData.maxY,fp)
+	
+	batchX, batchY = myData.nextBatch(batchSize)
+	batchX = np.reshape(batchX,[-1,nCell*nWindow])
+	#pdb.set_trace()
+	
+	_, lossTrain, predTrain = sess.run([trainer, loss, predict_op], feed_dict={x:batchX, y_:batchY})
+	
+	
+	if i % 100 == 0:
+		print("iteration: %d,loss: %f" % (i,lossTrain))
+	if i % 500 == 0:
+		lossTest, predTest  = sess.run([loss_test, predict_test_op], feed_dict={x:testX, y_:testY})
+		
+		with open("training/process_{}.pickle".format(i), "wb") as fp:
+			pickle.dump(predTest,fp)
+			pickle.dump(myData.xTest,fp)
+			pickle.dump(myData.yTest,fp)
+			pickle.dump(lossTest,fp)
+			#pickle.dump(myData.minY,fp)
+			#pickle.dump(myData.maxY,fp)
 
-        # save model to file
-        saver = tf.train.Saver()
-        saver.save(sess,"models/model_{}.ckpt".format(i))
+		# save model to file
+		saver = tf.train.Saver()
+		saver.save(sess,"models/model_{}.ckpt".format(i))
 #---------------------
 
