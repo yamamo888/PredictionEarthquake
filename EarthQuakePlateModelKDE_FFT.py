@@ -451,9 +451,9 @@ if __name__ == "__main__":
 	
 	#Reading load log.txt
 	if isWindows:
-		files = glob.glob('logs\\log_10_20*.txt')
+		files = glob.glob('logs\\log_10*.txt')
 	else:
-		files = glob.glob('logs/log_10_20*.txt')
+		files = glob.glob('logs/log_10*.txt')
 
 	for fID in np.arange(len(files)):
 		print('reading',files[fID])
