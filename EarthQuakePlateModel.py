@@ -200,6 +200,8 @@ class Data:
 				self.X[fID] = tmpX
 				self.Y = tmpY
 
+		#
+		pdb.set_trace()
 		# 平均画像の作成
 		self.meanImg = np.mean(self.X, axis=0)
 

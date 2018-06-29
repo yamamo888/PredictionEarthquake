@@ -24,8 +24,8 @@ import scipy.optimize
 
 #########################################
 class EarthQuakePlateModel:
-    logPath = 'logs_tmp'
-    dataPath = 'data_tmp'
+    logPath = 'logs'
+    dataPath = 'data'
     visualPath = 'visualization'
 
     #--------------------------
@@ -116,8 +116,8 @@ class EarthQuakePlateModel:
 
 #########################################
 class Data:
-    logPath = 'logs_tmp'
-    dataPath = 'data_tmp'
+    logPath = 'logs'
+    dataPath = 'data'
     visualPath = 'visualization'
 
     #--------------------------
@@ -390,10 +390,14 @@ class Data:
 ############## MAIN #####################
 if __name__ == "__main__":
     
-    isWindows = True
+    isWindows = False 
     
     #Reading load log.txt
-    files = glob.glob('logs_tmp\\*.txt')
+    if isWindows:
+        files = glob.glob('logs\\log_10*.txt')
+    else:
+        files = glob.glob('logs/log_10*.txt')
+
     
     for fID in np.arange(len(files)):
         print('reading',files[fID])
