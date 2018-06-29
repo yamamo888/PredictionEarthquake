@@ -24,8 +24,8 @@ import scipy.optimize
 
 #########################################
 class EarthQuakePlateModel:
-    logPath = 'logs'
-    dataPath = 'data'
+    logPath = 'logs_tmp'
+    dataPath = 'data_tmp'
     visualPath = 'visualization'
 
     #--------------------------
@@ -116,8 +116,8 @@ class EarthQuakePlateModel:
 
 #########################################
 class Data:
-    logPath = 'logs'
-    dataPath = 'data'
+    logPath = 'logs_tmp'
+    dataPath = 'data_tmp'
     visualPath = 'visualization'
 
     #--------------------------
@@ -163,13 +163,13 @@ class Data:
                 #self.Y = tmpY
     
         # XとYの正規化(Yが小さすぎるため,そのもののbを可視化したいときはYの正規化だけはずす）
-        self.minY = np.min(self.Y)
-        self.maxY = np.max(self.Y)
-        self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
+        #self.minY = np.min(self.Y)
+        #self.maxY = np.max(self.Y)
+        #self.Y = (self.Y - self.minY)/(self.maxY-self.minY)
         
-        self.minX = np.min(self.X)
-        self.maxX = np.max(self.X)
-        self.X = (self.X - self.minX)/(self.maxX-self.minX)
+        #self.minX = np.min(self.X)
+        #self.maxX = np.max(self.X)
+        #self.X = (self.X - self.minX)/(self.maxX-self.minX)
         
         self.nTrain = np.floor(self.nData * trainRatio).astype(int)
         self.nTest = self.nData - self.nTrain
@@ -299,7 +299,7 @@ class Data:
             fft_amp = np.abs(np.fft.fft(self.kde[dataInd,:,:]))
             
             # 1(Hz)から考える
-            fft_amp = fft_amp[:,1:eFrq]
+            fft_amp = fft_amp[:,1:eFrq+1]
             
             fft_amp = fft_amp[np.newaxis,:,:]
             
@@ -363,7 +363,6 @@ class Data:
         self.xTest = self.fft_xMean[self.randInd[self.nTrain:]]
         self.yTest = self.Y[self.randInd[self.nTrain:]]
         
-        return self.xTrain,self.yTrain,self.xTest,self.yTest
        
     
     
@@ -375,6 +374,7 @@ class Data:
 
         batchX = self.xTrain[self.batchRandInd[sInd:eInd]]
         batchY = self.yTrain[self.batchRandInd[sInd:eInd]]
+        
         
         if eInd+batchSize > self.nTrain:
             self.batchCnt = 0
@@ -393,7 +393,7 @@ if __name__ == "__main__":
     isWindows = True
     
     #Reading load log.txt
-    files = glob.glob('logs\\*.txt')
+    files = glob.glob('logs_tmp\\*.txt')
     
     for fID in np.arange(len(files)):
         print('reading',files[fID])
@@ -410,12 +410,12 @@ if __name__ == "__main__":
         log.plotV(isPlotShow=False,isYearly=False,prefix='yV')
     
     
-    
-    data = Data(fname="yVlog_10*",trainRatio=0.8,nCell=8,sYear=2000, eYear=10000, bInd=0, isTensorflow=False,isWindows=True)
-    data.KDE(nYear=8000)
+    #実行する意味がない
+    #data = Data(fname="yVlog_10*",trainRatio=0.8,nCell=8,sYear=2000, eYear=10000, bInd=0, isTensorflow=False,isWindows=True)
+    #data.KDE(nYear=8000)
     
     #data.Wavelet(width=100)
-    data.FFT(slice_size=25,eFrq=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False)
+    #data.FFT(slice_size=25,eFrq=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False)
     
 ############################################
 
