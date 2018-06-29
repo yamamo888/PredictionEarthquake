@@ -309,7 +309,7 @@ class Data:
                 dataflag = True
             else:
                 self.fft_amp = np.concatenate((self.fft_amp,fft_amp),axis=0)
-        pdb.set_trace()
+        #pdb.set_trace()
 
         # ナイキスト周波数を考慮した範囲([]内変更必要) 
         #NyquistInd = int(len(fft_amp[0,0,:])/2)
