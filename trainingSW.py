@@ -87,11 +87,11 @@ nSlice = 31
 sYear = 2000
 eYear = 10000
 bInd = 0
-size = 250
+size = 25
 
 myData = eqp.Data(fname="yVlog_10*",trainRatio=0.8,nCell=nCell,sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=False)
 kde = myData.KDE(nYear=8000)
-features = myData.FFT(slice_size=size,nYear=8000,nCell=nCell,trainRatio=0.8,isTensorflow=True)
+features = myData.FFT(slice_size=size,eFrq=250,nYear=8000,nCell=nCell,trainRatio=0.8,isTensorflow=True)
 
 # Build the computation graph for training
 x = tf.placeholder(tf.float32, shape=[None,nCell,nSlice])
