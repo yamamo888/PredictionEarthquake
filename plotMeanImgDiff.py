@@ -15,7 +15,7 @@ nFreqs = 30
 sYear = 2000
 eYear = 6000
 bInd = 0
-myData = eqp.Data(fname="log_10*",trainRatio=0.8,nCell=nCell,nFreqs=nFreqs, sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=True)
+myData = eqp.Data(fname="log_10*",trainRatio=0.8,nCell=nCell,nFreqs=nFreqs, sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=True, isWindows=False)
 
 #myData.meanIng.shape[30,4000,8]
 #myData.X.shape[11,30,4000,8]
@@ -36,8 +36,8 @@ def plot(img,fname):
 	fullPath = os.path.join(visualPath,"{}_data.png".format(fname))
 	plt.savefig(fullPath)
 
-	plt.show()
 
+pdb.set_trace()
 plot(myData.meanImg,fname='mean')
 loglen = 600
 for i in np.arange(loglen):

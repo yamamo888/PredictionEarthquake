@@ -162,7 +162,7 @@ class Data:
 	visualPath = 'visualization'
 
 	#--------------------------
-	def __init__(self,fname="log_25*",trainRatio=0.8,nCell=8,nFreqs=30, sYear=1000, eYear=2000, bInd=0, isTensorflow=True,isWindows=True):
+	def __init__(self,fname="log_25*",trainRatio=0.8,nCell=8,nFreqs=30, sYear=1000, eYear=2000, bInd=0, isTensorflow=True,isWindows=False):
 
 		# pklファイルの一覧
 		fullPath = os.path.join(self.dataPath,fname)
@@ -257,13 +257,16 @@ class Data:
 ############## MAIN #####################
 if __name__ == "__main__":
 	
-	isWindows = True
+	isWindows = False
 	nYear = 10000
 	nCell = 8
 	nFreqs = 30
 	
 	#Reading load log.txt
-	files = glob.glob('logs\\*.txt')
+	if isWindows:
+		files = glob.glob('logs\\*.txt')
+	else:
+		files = glob.glob('logs/log*.txt')
 
 	for fID in np.arange(len(files)):
 		print('reading',files[fID])
