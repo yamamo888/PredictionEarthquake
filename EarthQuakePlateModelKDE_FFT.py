@@ -160,7 +160,8 @@ class EarthQuakePlateModel:
 			eInd = sInd + widthWindow
 			
 			# ウィンドウのスペクトラムの平均
-			X = np.mean(self.yVfft[:,sInd:eInd],axis=1)
+			#X = np.mean(self.yVfft[:,sInd:eInd],axis=1)
+			X = np.max(self.yVfft[:,sInd:eInd],axis=1)
 			X = X[np.newaxis]
 
 			if not flag:
@@ -181,7 +182,7 @@ class Data:
 	visualPath = 'visualization'
 
 	#--------------------------
-	def __init__(self,fname="kde_fft_log_10*", trainRatio=0.8, nCell=8, sYear=2000, eYear=10000, bInd=0, isWindows=True):
+	def __init__(self,fname="kde_fft_log_10*", trainRatio=0.8, nCell=8, sYear=2000, eYear=10000, bInd=0, isWindows=True, isClass=False):
 				
 		# pklファイルの一覧
 		fullPath = os.path.join(self.dataPath,fname)
@@ -208,15 +209,46 @@ class Data:
 				tmpyVfft = pickle.load(fp)
 				tmpX = pickle.load(fp)
 
+			# pick up b in only one cell
+			tmpY = tmpY[bInd]
+
+			if isClass:
+				sB = 0.011
+				eB = 0.017
+				iB = 0.0005
+
+				Bs = np.arange(sB,eB,iB)
+				oneHot = np.zeros(len(Bs))
+
+				ind = 0
+				for threB in Bs:
+					if (tmpY >= threB) & (tmpY < threB + iB):
+						oneHot[ind] = 1			
+					ind += 1
+				tmpY = oneHot
+				
+				'''		
+				if (tmpY <= 0.012): oneHotInd = 0
+				elif (tmpY > 0.012) & (tmpY <= 0.013): oneHotInd = 1
+				elif (tmpY > 0.013) & (tmpY <= 0.014): oneHotInd = 2
+				elif (tmpY > 0.014) & (tmpY <= 0.015): oneHotInd = 3
+				elif (tmpY > 0.015) & (tmpY <= 0.016): oneHotInd = 4
+				elif (tmpY > 0.016): oneHotInd = 5
+				tmpY = np.zeros(6)
+				tmpY[oneHotInd] = 1
+				'''		
+
+				tmpY = tmpY[np.newaxis]
 
 			if not flag:
 				self.X = tmpX[np.newaxis]
-				self.Y = tmpY[bInd]
+				self.Y = tmpY
 				flag = True
 			else:
 				self.X = np.concatenate((self.X,tmpX[np.newaxis]),axis=0)
-				self.Y = np.append(self.Y, tmpY[bInd])
-			
+				self.Y = np.append(self.Y, tmpY,axis=0)
+
+		'''			
 		# XとYの正規化(Yが小さすぎるため,そのもののbを可視化したいときはYの正規化だけはずす）
 		self.minY = np.min(self.Y)
 		self.maxY = np.max(self.Y)
@@ -225,6 +257,9 @@ class Data:
 		self.minX = np.min(self.X)
 		self.maxX = np.max(self.X)
 		self.X = (self.X - self.minX)/(self.maxX-self.minX)
+		self.X = (self.X-np.mean(self.X,axis=0))*100
+		self.Y = self.Y * 100 - 1
+		'''
 		
 		self.nTrain = np.floor(self.nData * trainRatio).astype(int)
 		self.nTest = self.nData - self.nTrain
@@ -297,18 +332,10 @@ if __name__ == "__main__":
 		
 		# KDE
 		log.KDE()
-		log.FFT(widthWindow=25,eFrq=250)
+		log.FFT(widthWindow=10,eFrq=100)
+		#log.FFT(widthWindow=10,eFrq=100)
 
 		# 保存
 		log.plotV(isPlotShow=False,isYearly=False,prefix='kde_fft_')
-	
-	
-	#実行する意味がない
-	#data = Data(fname="yVlog_10*",trainRatio=0.8,nCell=8,sYear=2000, eYear=10000, bInd=0, isTensorflow=False,isWindows=True)
-	#data.KDE(nYear=8000)
-	
-	#data.Wavelet(width=100)
-	#data.FFT(widthWindow=25,eFrq=250,nYear=8000,nCell=8,trainRatio=0.8,isTensorflow=False)
-	
 ############################################
 

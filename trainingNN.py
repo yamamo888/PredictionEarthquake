@@ -17,6 +17,16 @@ import glob
 import EarthQuakePlateModelKDE_FFT as eqp
 
 #---------------------
+# parameter setting
+#nCell = 8
+nCell = 1
+nClass = 13
+nWindow = 10
+bInd = 0
+size = 25
+#---------------------
+
+#---------------------
 # Define some handy network layers
 def weight_variable(name,shape):
 	return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1))
@@ -36,89 +46,139 @@ def fc_relu(inputs, w, b, keepProb):
 	relu = tf.nn.relu(relu)
 	return relu
 
-#---------------------
+def fc(inputs, w, b, keepProb):
+	fc = tf.matmul(inputs, w) + b
+	fc = tf.nn.dropout(fc, keepProb)
+	return fc
 
 #---------------------
 
-def nn(x,reuse=False):
+#---------------------
+# regression
+def nn(x,reuse=False,nCell=1,nWindow=10, nHidden = 10):
 	with tf.variable_scope('nn') as scope:  
-		keepProb = 0.5 
+		keepProb = 1
 		if reuse:
 			keepProb = 1.0			
 			scope.reuse_variables()
 
 		#input -> hidden
-		w1 = weight_variable('w1',[8*10,20])
-		b1 = bias_variable('b1',[20])
+		w1 = weight_variable('w1',[nCell*nWindow,nHidden])
+		b1 = bias_variable('b1',[nHidden])
 		h = fc_relu(x,w1,b1,keepProb) 
 
 		#hidden -> output
-		w2 = weight_variable('w2',[20,1])
+		w2 = weight_variable('w2',[nHidden,1])
 		b2 = bias_variable('b2',[1])
 		y = fc_relu(h,w2,b2,keepProb)
 
 		return y
+#---------------------
+
+#---------------------
+# classification
+def nn_class(x,reuse=False,nCell=1,nWindow=10, nHidden = 10):
+	with tf.variable_scope('nn_class') as scope:  
+		keepProb = 1
+		if reuse:
+			keepProb = 1.0			
+			scope.reuse_variables()
+
+		#input -> hidden
+		w1 = weight_variable('w1',[nCell*nWindow,nHidden])
+		b1 = bias_variable('b1',[nHidden])
+		h = fc_relu(x,w1,b1,keepProb) 
+
+		#hidden -> output
+		w2 = weight_variable('w2',[nHidden,nClass])
+		b2 = bias_variable('b2',[nClass])
+		y = fc(h,w2,b2,keepProb)
+
+		return y
+#---------------------
 
 # load data
-nCell = 8
-nWindow = 10
-sYear = 2000
-eYear = 10000
-bInd = 0
-size = 25
-
-#myData = eqp.Data(fname="yVlog_10*",trainRatio=0.8,nCell=nCell,sYear=sYear, eYear=eYear, bInd=bInd, isTensorflow=False)
-#kde = myData.KDE(nYear=8000)
-#myData.FFT(slice_size=size,eFrq=250,nYear=8000,nCell=nCell,trainRatio=0.8,isTensorflow=True)
-
-myData = eqp.Data(fname="kde_fft_log_10*", trainRatio=0.8, bInd=bInd, isWindows=False)
+myData = eqp.Data(fname="kde_fft_log_10*", trainRatio=0.8, bInd=bInd, isWindows=False, isClass=True)
 
 # Build the computation graph for training
 x = tf.placeholder(tf.float32, shape=[None,nCell*nWindow])
-y_ = tf.placeholder(tf.float32, shape=[None])
 
+# regression
+y = tf.placeholder(tf.float32, shape=[None])
+
+# classification
+y_class = tf.placeholder(tf.float32, shape=[None,nClass])
+
+# regression
 predict_op = nn(x)
 predict_test_op = nn(x,reuse=True)
+
+# classification
+predict_class_op = nn_class(x)
+predict_class_test_op = nn_class(x,reuse=True)
 #---------------------
 
 #---------------------
 # loss
-loss= tf.reduce_mean(tf.abs(predict_op - y_))
-loss_test= tf.reduce_mean(tf.abs(predict_test_op - y_))
+loss = tf.reduce_mean(tf.abs(predict_op - y))
+loss_test = tf.reduce_mean(tf.abs(predict_test_op - y))
+loss_class = tf.losses.softmax_cross_entropy(y_class, predict_class_op)
+loss_test_class = tf.losses.softmax_cross_entropy(y_class, predict_class_test_op)
 
 trainer = tf.train.AdamOptimizer(1e-3).minimize(loss)
+trainer_class = tf.train.AdamOptimizer(1e-3).minimize(loss_class)
 #---------------------
+
+#---------------------
+# accuracy
+accuracy_op = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y_class, 1), tf.argmax(predict_class_op, 1)), tf.float32))
 
 #---------------------
 batchSize = 50
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
-testX = np.reshape(myData.xTest,[-1,nCell*nWindow])
+testX = np.reshape(myData.xTest[:,0,:],[-1,nCell*nWindow])
 testY = myData.yTest 
 
 # Start training
-for i in range(70000):
+for i in range(100000):
 	
 	batchX, batchY = myData.nextBatch(batchSize)
-	batchX = np.reshape(batchX,[-1,nCell*nWindow])
-	#pdb.set_trace()
-	
-	_, lossTrain, predTrain = sess.run([trainer, loss, predict_op], feed_dict={x:batchX, y_:batchY})
-	
+	#batchX = np.reshape(batchX,[-1,nCell*nWindow])
+	# only 1st cell
+	batchX = np.reshape(batchX[:,0,:],[-1,nCell*nWindow])
+
+	# regression	
+	#_, lossTrain, predTrain = sess.run([trainer, loss, predict_op], feed_dict={x:batchX, y:batchY})
+
+	# classification
+	_, lossTrain, predTrain = sess.run([trainer_class, loss_class, predict_class_op], feed_dict={x:batchX, y_class:batchY})
 	
 	if i % 100 == 0:
 		print("iteration: %d,loss: %f" % (i,lossTrain))
 	if i % 500 == 0:
-		lossTest, predTest  = sess.run([loss_test, predict_test_op], feed_dict={x:testX, y_:testY})
+		# regression
+		#lossTest, predTest  = sess.run([loss_test, predict_test_op], feed_dict={x:batchX, y:batchY})
+
+		# classification
+		#lossTest, predTest, accuracy  = sess.run([loss_test_class, predict_class_test_op, accuracy_op], feed_dict={x:batchX, y_class:batchY})
+		lossTest, predTest, accuracy  = sess.run([loss_test_class, predict_class_test_op, accuracy_op], feed_dict={x:testX, y_class:testY})
+		print("iteration: %d,loss: %f, accuracy: %f" % (i,lossTest,accuracy))
+
+		print("--------------------------")
+		print("testX:\n",testX[:10])
+		print("--------------------------")
+		print("predTest:\n",predTest[:10])
+		print("argmax predTest:",np.argmax(predTest[:10],axis=1))
+		print("argmax testY:",np.argmax(testY[:10],axis=1))
+		print("--------------------------")
 		
 		with open("training/process_{}.pickle".format(i), "wb") as fp:
 			pickle.dump(predTest,fp)
 			pickle.dump(myData.xTest,fp)
 			pickle.dump(myData.yTest,fp)
 			pickle.dump(lossTest,fp)
-			#pickle.dump(myData.minY,fp)
-			#pickle.dump(myData.maxY,fp)
 
 		# save model to file
 		saver = tf.train.Saver()
