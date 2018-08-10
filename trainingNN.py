@@ -30,30 +30,34 @@ class Trainingeqp():
         elif inputCellMode == -1:
             nCell = 7
             #nCell = 2
-        if dataMode == 1:
-            dataPath = 'datab1b2'
+        
+        # b1単独予測器の場合は_1指定
+        # b2単独予測器の場合は_2指定
+        # b1b2組み合わせデータの場合は_12指定
+        
+        if dataMode == 12:
+            dataPath = 'b1b2'
             picklePath='xydatab1b2.pkl'
             trainingpicklePath='traintestdatab1b2.pkl'
             fname='kde_fft_log_20*'
-        elif dataMode == 2:
-            dataPath = 'datab1b2'    
-            picklePath='xydatab1b2_2.pkl'
-            trainingpicklePath='traintestdatab1b2_2.pkl'
-            fname='kde_fft_log_20*'
-        elif dataMode == 12:
-            dataPath = 'datab1b2-0.8'
-            # b2単独予測器の場合は_2をつけたpickle指定
-            # b1b2組み合わせ予測器の場合は_12をつけたpickle指定
-            picklePath='xydatab1b2-0.8_1.pkl'
-            trainingpicklePath='traintestdatab1b2-0.8_1.pkl'
+        
+        elif dataMode == 123:
+            dataPath = 'b1b2b3'    
+            picklePath='xydatab1b2b3.pkl'
+            trainingpicklePath='traintestdatab1b2b3.pkl'
             fname='kde_fft_log_20*'
         
+
         if outputCellMode == 1:
             bInd = 0    
         elif outputCellMode == 2:
             bInd = 1
         elif outputCellMode == 12:
             bInd=[0,1]
+        elif outputCellMode == 23:
+            bInd=[1,2]
+        elif outputCellMode == 123:
+            bInd=[1,2,3]
         
         # Mode
         self.inputCellMode = inputCellMode
@@ -62,10 +66,16 @@ class Trainingeqp():
         self.datapickleMode = datapickleMode
         
         # Path
+        self.featuresPath = './features'
+        self.modelsPath = './models'
+        self.trainingPath = './training'
+
         self.dataPath = dataPath
         self.picklePath = picklePath
         self.trainingpicklePath = trainingpicklePath
         self.fname = fname
+
+        
         
         
         # parameter setting
@@ -79,8 +89,8 @@ class Trainingeqp():
         
         self.myData = eqp.Data(fname=fname, trainRatio=0.8, nCell=nCell, sYear=2000, bInd=bInd, 
               eYear=10000, isWindows=True, isClass=True, 
-              dataMode=dataMode, outputCellMode=outputCellMode, datapickleMode=datapickleMode, 
-              dataPath=dataPath,trainingpicklePath=trainingpicklePath,picklePath=picklePath)
+              dataMode=dataMode, outputCellMode=outputCellMode, datapickleMode=datapickleMode,
+              featuresPath=self.featuresPath,dataPath=dataPath,trainingpicklePath=trainingpicklePath,picklePath=picklePath)
 
         
     def nn_class(self,x,reuse=False):
@@ -125,7 +135,7 @@ class Trainingeqp():
                 y = fc(h,self.w2,self.b2,keepProb)
                 return y
 
-    def Multinn_class(self,x,reuse=False):
+    def TwoDimensions_nn_class(self,x,reuse=False):
         def weight_variable(name,shape,trainable):
             return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1),trainable=trainable)
             
@@ -149,7 +159,7 @@ class Trainingeqp():
             fc = tf.nn.dropout(fc, keepProb)
             return fc
         
-        with tf.variable_scope('Multinn_class') as scope:  
+        with tf.variable_scope('TwoDimensions_nn_class') as scope:  
             keepProb = 1
             if reuse:
                 keepProb = 1.0            
@@ -174,6 +184,56 @@ class Trainingeqp():
             
             return y1, y2
             
+    def ThreeDimensions_nn_class(self,x,reuse=False):
+        def weight_variable(name,shape,trainable):
+            return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1),trainable=trainable)
+            
+        def bias_variable(name,shape,trainable):
+            return tf.get_variable(name,shape,initializer=tf.constant_initializer(0.1),trainable=trainable)
+            
+        def softmax(inputs,w,b,keepProb):
+            softmax = tf.matmul(inputs,w) + b
+            softmax = tf.nn.dropout(softmax, keepProb)
+            softmax = tf.nn.softmax(softmax)
+            return softmax
+        
+        def fc_relu(inputs, w, b, keepProb):
+            relu = tf.matmul(inputs, w) + b
+            relu = tf.nn.dropout(relu, keepProb)
+            relu = tf.nn.relu(relu)
+            return relu
+        
+        def fc(inputs, w, b, keepProb):
+            fc = tf.matmul(inputs, w) + b
+            fc = tf.nn.dropout(fc, keepProb)
+            return fc
+        
+        with tf.variable_scope('ThreeDimensions_nn_class') as scope:  
+            keepProb = 1
+            if reuse:
+                keepProb = 1.0            
+                scope.reuse_variables()
+                
+            #input -> hidden
+            #学習させない時は、trainable=False(上書き値で固定)
+            self.multiw1 = weight_variable('multiw1',[self.nCell*self.nWindow,self.multinHidden],trainable=False)
+            self.b1 = bias_variable('b1',[self.multinHidden],trainable=False)
+            h = fc_relu(x,self.multiw1,self.b1,keepProb) 
+            
+            #hidden -> output
+            self.w2_1 = weight_variable('w2_1',[self.multinHidden,self.nClass],trainable=True)
+            self.b2_1 = bias_variable('b2_1',[self.nClass],trainable=True)
+            
+            self.w2_2 = weight_variable('w2_2',[self.multinHidden,self.nClass],trainable=True)
+            self.b2_2 = bias_variable('b2_2',[self.nClass],trainable=True)
+            
+            self.w2_3 = weight_variable('w2_3',[self.multinHidden,self.nClass],trainable=True)
+            self.b2_3 = bias_variable('b2_3',[self.nClass],trainable=True)
+            
+            y1 = fc(h,self.w2_1,self.b2_1,keepProb)
+            y2 = fc(h,self.w2_2,self.b2_2,keepProb) 
+            y3 = fc(h,self.w2_3,self.b2_3,keepProb)
+            return y1, y2
         
 if __name__ == "__main__":
     
@@ -193,12 +253,12 @@ if __name__ == "__main__":
     bInd = mytraining.bInd
     nWindow = mytraining.nWindow
     nClass = mytraining.nClass
-    batchSize = 1000
+    batchSize = 750
     
     # b1b2両方を出力したいときは True
-    isMultiPrediction = False
+    isTwoDimensionsPrediction = False
     
-    if isMultiPrediction:
+    if isTwoDimensionsPredicton:
         
         ######################### Multi Prediction ###########################################
         x = tf.placeholder(tf.float32, shape=[None,nCell*nWindow])
@@ -249,13 +309,14 @@ if __name__ == "__main__":
         testY1 = mytraining.myData.y1Test
         testY2 = mytraining.myData.y2Test
         
+        #process の番号を変更する
         if isWindows:
                 w1PickleFiles = glob.glob('trainingw1\\process_*pickle')
                 w2PickleFiles = glob.glob('trainingw2\\process_*pickle')
                 
         else:
-                w1PickleFiles = glob.glob('trainingw1/process_*pickle')
-                w2PickleFiles = glob.glob('trainingw2/process_*pickle')
+                w1PickleFiles = glob.glob('./training/b1b2/processb1_*pickle')
+                w2PickleFiles = glob.glob('./training/b1b2/processb2_*pickle')
                 
         
         # b1のw1train,test 
@@ -264,10 +325,6 @@ if __name__ == "__main__":
             w1_1Test = pickle.load(fp)
             b1_1Train = pickle.load(fp)
             b1_1Test = pickle.load(fp)
-            w2_1Train = pickle.load(fp)
-            w2_1Test = pickle.load(fp)
-            b2_1Train = pickle.load(fp)
-            b2_1Test = pickle.load(fp)
             
 
         # b2のw1train,test
@@ -276,10 +333,6 @@ if __name__ == "__main__":
             w1_2Test = pickle.load(fp)
             b1_2Train = pickle.load(fp)
             b1_2Test = pickle.load(fp)
-            w2_2Train = pickle.load(fp)
-            w2_2Test = pickle.load(fp)
-            b2_2Train = pickle.load(fp)
-            b2_2Test = pickle.load(fp)
             
         #b1b2のw1(b1)をconcateして、480次元のmultiw1にする
         w1Train = np.concatenate((w1_1Train,w1_2Train),axis=1)
@@ -313,18 +366,6 @@ if __name__ == "__main__":
             w1TrainUpdate,b1TrainUpdate,_,MultilossTrain,lossb1,lossb2, predTrainb1, predTrainb2 = sess.run([w1TrainUpdate_op,b1TrainUpdate_op,trainer_class, loss_class_all,loss_class1,loss_class2, 
                                                                                    predict_class1_op, predict_class2_op], feed_dict={x:batchX, y1_class:batchY1, y2_class:batchY2})
             
-            """
-            #unfrozen(最初だけ上書きして、それ以降は学習)
-            if i == 0:
-               
-               sess.run([w1TrainUpdate_op,b1TrainUpdate_op,w1TestUpdate_op,b1TestUpdate_op])
-               _, MultilossTrain, predTrainb1, predTrainb2 = sess.run([trainer_class, loss_class_all, 
-                                                                                   predict_class1_op, predict_class2_op], feed_dict={x:batchX, y1_class:batchY1, y2_class:batchY2})
-            
-            else:
-               MultilossTrain, predTrainb1, predTrainb2 = sess.run([trainer_class, loss_class_all, 
-                                                                                   predict_class1_op, predict_class2_op], feed_dict={x:batchX, y1_class:batchY1, y2_class:batchY2})
-            """
             #pdb.set_trace()
             if i % 100 == 0:
                 print("iteration: %d,loss of b1&b2: %f,loss of b1: %f,loss of b2: %f" % (i,MultilossTrain,lossb1,lossb2))
@@ -347,14 +388,20 @@ if __name__ == "__main__":
                 print("argmax testY of b2:",np.argmax(testY2[:10],axis=1))
                 print("--------------------------")
                 
-                #print("上書きする値(Test)",w1Test[:10,0])
-                #print("上書きする値(Train)",w1Train[:10,0])
-                #print("w1",sess.run(mytraining.multiw1[:10,0]))    
                 # save model to file
                 saver = tf.train.Saver()
-                saver.save(sess,"modelsb{0}/model_{1}.ckpt".format(dataMode,i))
+                saver.save(sess,"models/modelsb{0}/model_{1}.ckpt".format(dataMode,i))
                 #saver.restore(sess,"modelsb{0}/model_{1}.ckpt".format(dataMode,i))
                 
+                # Save loss
+                with open('./visualization/lossmulti_{}.pickle'.format(i),'wb') as fp:
+                    pickle.dump(MultilossTest,fp)
+                    pickle.dump(lossTestb1,fp)
+                    pickle.dump(lossTestb2,fp)
+                # Save accuracy
+                with open('./visualization/accuracymulti_{}.pickle'.format(i),'wb') as fp:
+                    pickle.dump(accuracyb1,fp)
+                    pickle.dump(accuracyb2,fp)
 
     ################# Signal Prediction ###########################
     else:
@@ -458,16 +505,24 @@ if __name__ == "__main__":
                 print("argmax predTest:",np.argmax(predTest[:10],axis=1))
                 print("argmax testY:",np.argmax(testY[:10],axis=1))
                 print("--------------------------")
+
+                
+                # Save loss
+                # loss　もaccuracy　も番号を変える
+                with open('./visualization/lossb1_{}.pickle'.format(i),'wb') as fp:
+                    pickle.dump(lossTest,fp)
+                # Save accuracy
+                with open('./visualization/accuracyb1_{}.pickle'.format(i),'wb') as fp:
+                    pickle.dump(accuracy,fp)
+
+
         # w1,b1を保存
         with open("trainingw{0}/process_{1}.pickle".format(outputCellMode,i), "wb") as fp:
                     pickle.dump(minw1Train,fp)
                     pickle.dump(minw1Test,fp)
                     pickle.dump(minb1Train,fp)
                     pickle.dump(minb1Test,fp)
-                   # pickle.dump(minw2Train,fp)
-                   # pickle.dump(minw2Test,fp)
-                   # pickle.dump(minb2Train,fp)
-                   # pickle.dump(minb2Test,fp)
+
                     
                 
                 

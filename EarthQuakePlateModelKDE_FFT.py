@@ -37,32 +37,27 @@ class EarthQuakePlateModel:
     def __init__(self,dataMode,logName,nCell=8,nYear=10000):
     
     ############ 引数説明 ##############
-    # dataMode:使うデータの入ったディレクトリ指定
+    # dataMode:使うデータの入ったlogs以下のディレクトリ指定
+    #   12:b1b2組み合わせデータ
+    #   123:b1b2b3組み合わせデータ
     # logName:logfileに入っているlogファイル
     # nCell,nYear:このクラスで使うparameter
     #################################
         
-        if dataMode == 1:
-            logPath = 'logsb1b2'
-            dataPath = 'datab1'
-        
-        elif dataMode == 2:
-            logPath = 'logsb2'
-            dataPath = 'datab2'
+        if dataMode == 12:
+            dataPath = 'b1b2'
                 
-        elif dataMode == 12:
-            logPath = 'logsb1b2b3-0.8'
-            dataPath = 'datab1b2-0.8'
-        
-        # log directory
-        self.logPath = logPath
-        # save pickledata
+        elif dataMode == 123:
+            dataPath = 'b1b2b3'
+
+        # 組み合わせデータの保存場所
+        self.logPath = './logs'
         self.dataPath = dataPath
         
         # log file
         self.logName = logName
         # log file Path
-        self.logFullPath = os.path.join(self.logPath,logName)
+        self.logFullPath = os.path.join(self.logPath,self.dataPath,logName)
         # parameters
         self.nCell = nCell
         self.nYear = nYear
@@ -226,20 +221,21 @@ class Data:
     #####################################################
     
     #######[1]inputCellMode(入力のセルを選択) ######## 
-    #　inputCellMode=1: すべてのセル
+    # inputCellMode=1: すべてのセル
     # inputCellMode=2: bIndのみのセル
     # inputCellMode=-1: bInd以外のセル
     ###############################################
 
-    ####[2] dataMode(データの種類の切り替え) ##########################
-    # dataMode=1: b1 だけを動かしたデータ（相互作用が少ない）
-    # dataMode=2: b2　だけを動かしたデータ（相互作用が少ない）
-    # dataMode=12: b1b2　だけを動かしたデータ（相互作用が大きい）→今後試していく
-    ##############################################################
+    ####[2] dataMode(データの種類の切り替え) ##########
+    # dataMode=12:b1b2
+    # dataMode=123:b1b2b3
+    ##################################################
         
     #####[3] cellMode（出力するセルのパラメータ[b]指定） #########
     # cellMode=1,2: b1 or b2　（1次元の出力）
     # cellMode=12: b1 b2　（２次元の出力）
+    # cellMode=23: b2 b3 (2次元の出力)
+    # cellMode=123: b1 b2 b3 (3次元の出力)
     #####################################################
     
     ####[4] datapickleMode （pickleが３種類）######################
@@ -255,12 +251,12 @@ class Data:
     
     def __init__(self,fname='kde_fft_log_10*',trainRatio=0.8, nCell=8, 
                  sYear=2000, bInd=0, eYear=10000, isWindows=True, isClass=False,
-                 dataMode=1, outputCellMode=1, datapickleMode=1, dataPath='datab1',
+                 dataMode=1, outputCellMode=1, datapickleMode=1,featuresPath='./features', dataPath='datab1',
                  trainingpicklePath='traintestdatab1.pkl',picklePath='xydatab1.pkl'):
         
         
         # pklファイルの一覧
-        fullPath = os.path.join(dataPath,fname)
+        fullPath = os.path.join(featuresPath,dataPath,fname)
         files = glob.glob(fullPath)
 
         # データの領域確保
@@ -272,8 +268,8 @@ class Data:
         self.batchRandInd = np.random.permutation(self.nTrain)
         
         
-        traintestfullPath = os.path.join(dataPath,trainingpicklePath)
-        xyfullPath = os.path.join(dataPath,picklePath)
+        traintestfullPath = os.path.join(featuresPath,dataPath,trainingpicklePath)
+        xyfullPath = os.path.join(featuresPath,dataPath,picklePath)
         self.outputCellMode = outputCellMode
         
         
@@ -286,7 +282,7 @@ class Data:
                     self.xTest = pickle.load(fp)
                     self.yTest = pickle.load(fp)
             
-            elif outputCellMode == 12:
+            elif outputCellMode == 12 or outputCellMode == 23:
                 with open(traintestfullPath,'rb') as fp:
                     self.xTrain = pickle.load(fp)
                     self.y1Train = pickle.load(fp)
@@ -295,6 +291,17 @@ class Data:
                     self.y1Test = pickle.load(fp)
                     self.y2Test = pickle.load(fp)
             
+            elif outputCellMode == 123:
+                with open(traintestfullPath,'rb') as fp:
+                    self.xTrain = pickle.load(fp)
+                    self.y1Train = pickle.load(fp)
+                    self.y2Train = pickle.load(fp)
+                    self.y3Train = pickle.load(fp)
+                    self.xTest = pickle.load(fp)
+                    self.y1Test = pickle.load(fp)
+                    self.y2Test = pickle.load(fp)
+                    self.y3Test = pickle.load(fp)
+
         elif datapickleMode == 2:
         
             #　XとYのpickleファイル読み込み
@@ -346,7 +353,7 @@ class Data:
                     pickle.dump(self.yTest,fp)
             
             
-            elif outputCellMode == 12:
+            elif outputCellMode == 12 or outputCellMode == 23:
                 with open(xyfullPath,'rb') as fp:
                     self.X = pickle.load(fp)
                     self.Y1 = pickle.load(fp)
@@ -384,7 +391,7 @@ class Data:
                 self.y2Train = self.Y2[self.randInd[0:self.nTrain]]
                 
                 # 評価データ
-                self.xTest = self.X[self.randInd[self.nTrain:]]
+                self.xTest = self.X[self.randInd[self.nTrain:]] 
                 self.y1Test = self.Y1[self.randInd[self.nTrain:]]
                 self.y2Test = self.Y2[self.randInd[self.nTrain:]]
                 
@@ -397,7 +404,40 @@ class Data:
                     pickle.dump(self.y1Test,fp)
                     pickle.dump(self.y2Test,fp)
             
+            elif outputCellMode == 123:
+                with open(xyfullPath,'rb') as fp:
+                    self.X = pickle.load(fp)
+                    self.Y1 = pickle.load(fp)
+                    self.Y2 = pickle.load(fp)
+                    self.Y3 = pickle.load(fp)
+
+                self.nTrain = np.floor(seld.nData,trainRatio).astype(int)
+                self.nTest = self.nData - self.nTrain
                 
+                self.batchCnt = 0
+                self.batchRandInd = np.random.permutation(self.nTrain)
+
+                self.xTrain = self.X[self.randInd[0:sef.nTrain]]
+                self.y1Train = self.Y1[self.randInd[0:self.nTrain]]
+                self.y2Train = self.Y2[self.randInd[0:self.nTrain]] 
+                self.y3Train = self.Y3[self.randInd[0:self.nTrain]]
+
+                self.xTest = self.X[self.randInd[self.nTrain:]]
+                self.y1Test = self.Y1[self.randInd[self.nTrain:]]
+                self.y2Test = self.Y2[self.randInd[self.nTrain:]]
+                self.y3Test = self.Y3[self.randInd[self.nTrain:]]
+
+                with open(traintestfullPath,'wb') as fp:
+                    pickle.dump(self.xTrain,fp)
+                    pickle.dump(self.y1Train,fp)
+                    pickle.dump(self.y2Train,fp)
+                    pickle.dump(self.y3Train,fp)
+                    pickle.dump(self.xTest,fp)
+                    pickle.dump(self.y2Test,fp)
+                    pickle.dump(self.y1Test,fp)
+                    pickle.dump(self.y3Test,fp)
+
+
         elif datapickleMode == 3:
             flag = False
             # データの読み込み
@@ -445,7 +485,7 @@ class Data:
                         self.X = np.concatenate((self.X,tmpX[np.newaxis]),axis=0)
                         self.Y = np.append(self.Y, tmpY,axis=0)
                
-                elif outputCellMode == 12: 
+                elif outputCellMode == 12 or outputCellMode == 23: 
                     # pick up b in only one cell
                     tmpY1 = tmpY[bInd[0]]
                     tmpY2 = tmpY[bInd[1]]
@@ -486,6 +526,61 @@ class Data:
                         self.X = np.concatenate((self.X,tmpX[np.newaxis]),axis=0)
                         self.Y1 = np.append(self.Y1, tmpY1,axis=0)
                         self.Y2 = np.append(self.Y2, tmpY2,axis=0)
+               
+                elif outputCellMode == 123:
+
+                    tmpY1 = tmpY[bInd[0]]
+                    tmpY2 = tmpY[bInd[1]]
+                    tmpY3 = tmpY[bInd[2]]
+                  
+                    if isClass:
+                        sB = 0.011
+                        eB = 0.0169
+                        iB = 0.0005
+            
+                        Bs = np.arange(sB,eB,iB)
+                        oneHot1 = np.zeros(len(Bs))#0.001,0.0015,...0.00165
+                        oneHot2 = np.zeros(len(Bs))#0.001,0.0015,...0.00165 
+                        oneHot3 = np.zeros(len(Bs))#0.001,0.0015,...0.00165
+                       
+                        #b1
+                        ind = 0
+                        for threB in Bs:
+                            if (tmpY1 >= threB) & (tmpY1 < threB + iB):
+                                oneHot1[ind] = 1            
+                            ind += 1
+                        tmpY1 = oneHot1 
+                        tmpY1 = tmpY1[np.newaxis]
+                        
+                        #b2
+                        ind = 0
+                        for threB in Bs:
+                            if (tmpY2 >= threB) & (tmpY2 < threB + iB):
+                                oneHot2[ind] = 1            
+                            ind += 1
+                        tmpY2 = oneHot2 
+                        tmpY2 = tmpY2[np.newaxis]
+                        
+                        #b3
+                        ind = 0
+                        for threB in Bs:
+                            if (tmpY3 >= threB) & (tmpY3 < threB + iB):
+                                oneHot3[ind] = 1            
+                            ind += 1
+                        tmpY3 = oneHot3 
+                        tmpY3 = tmpY3[np.newaxis]
+                        
+                    if not flag:
+                        self.X = tmpX[np.newaxis]
+                        self.Y1 = tmpY1
+                        self.Y2 = tmpY2
+                        self.Y3 = tmpY3
+                        flag = True
+                    else:
+                        self.X = np.concatenate((self.X,tmpX[np.newaxis]),axis=0)
+                        self.Y1 = np.append(self.Y1, tmpY1,axis=0)
+                        self.Y2 = np.append(self.Y2, tmpY2,axis=0)
+                        self.Y3 = np.append(self.Y3, tmpY3,axis=0)
             
             # X,Y の保存
             if outputCellMode ==1 or outputCellMode == 2:
@@ -494,12 +589,18 @@ class Data:
                     pickle.dump(self.Y,fp)
             
             
-            elif outputCellMode ==12: 
+            elif outputCellMode == 12 or outputCellMode == 23: 
                 with open(xyfullPath,'wb') as fp:
                     pickle.dump(self.X,fp)
                     pickle.dump(self.Y1,fp)
                     pickle.dump(self.Y2,fp)
-            
+
+            elif outputCellMode == 123: 
+                with open(xyfullPath,'wb') as fp:
+                    pickle.dump(self.X,fp)
+                    pickle.dump(self.Y1,fp)
+                    pickle.dump(self.Y2,fp)
+                    pickle.dump(self.Y3,fp)
     #------------------------------------
     
     #------------------------------------
@@ -522,7 +623,7 @@ class Data:
             return batchX,batchY
         #------------------------------------
         #------------------------------------
-        elif self.outputCellMode == 12:
+        elif self.outputCellMode == 12 or self.outputCellMode == 23:
             sInd = batchSize * self.batchCnt
             eInd = sInd + batchSize
         
@@ -536,6 +637,23 @@ class Data:
                 self.batchCnt += 1
             
             return batchX,batchY1,batchY2
+        #------------------------------------
+        #------------------------------------
+        elif self.outputCellMode == 123:
+            sInd = batchSize * self.batchCnt
+            eInd = sInd + batchSize
+        
+            batchX = self.xTrain[self.batchRandInd[sInd:eInd]]
+            batchY1 = self.y1Train[self.batchRandInd[sInd:eInd]]
+            batchY2 = self.y2Train[self.batchRandInd[sInd:eInd]] 
+            batchY3 = self.y3Train[self.batchRandInd[sInd:eInd]]
+            
+            if eInd+batchSize > self.nTrain:
+                self.batchCnt = 0
+            else:
+                self.batchCnt += 1
+            
+            return batchX,batchY1,batchY2,batchY3
                 
 #########################################
 
@@ -551,28 +669,25 @@ if __name__ == "__main__":
     outputCellMode = int(sys.argv[3])
     datapickleMode = int(sys.argv[4])
     
-    if dataMode == 1:
-        dataPath = 'datab1'   
-        picklePath = 'xydatab1.pkl'
-        trainingpicklePath = 'traintestdatab1.pkl'
-        fmode = 'kde_fft_log_10*'
 
-    if dataMode == 2:
-        dataPath = 'datab2'   
-        picklePath = 'xydatab2.pkl'
-        trainingpicklePath = 'traintestdatab2.pkl'
-        fname = 'kde_fft_logb2_10*'
+    # b1単独予測器の場合は-1をつけたpickle指定 
+    # b2単独予測器の場合は_2をつけたpickle指定
+    # b1b2組み合わせ予測器の場合は_12をつけたpickle指定
 
     if dataMode == 12:
-        dataPath = 'datab1b2-0.8'
-        # b1単独予測器の場合は-1をつけたpickle指定 
-        # b2単独予測器の場合は_2をつけたpickle指定
-        # b1b2組み合わせ予測器の場合は_12をつけたpickle指定
-        picklePath = 'xydatab1b2-0.8_1.pkl'
-        trainingpicklePath = 'traintestdatab1b2-0.8_1.pkl'
+        
+        dataPath = 'b1b2'   
+        picklePath = 'xydatab1.pkl'
+        trainingpicklePath = 'traintestdatab1.pkl'
         fname = 'kde_fft_log_20*'
-        
-        
+
+    if dataMode == 123:
+        dataPath = 'b1b2b3'   
+        picklePath = 'xydatab1b2b3.pkl'
+        trainingpicklePath = 'traintestdatab1b2b3.pkl'
+        fname = 'kde_fft_logb2_20*'
+
+            
     #ClassDataのdataMode=3でbIndを設定するのに必要
     if outputCellMode == 1:
         bInd = 0    
@@ -580,6 +695,10 @@ if __name__ == "__main__":
         bInd = 1
     elif outputCellMode == 12:
         bInd=[0,1]
+    elif outputCellMode == 23:
+        bInd=[1,2]
+    elif outputCellMode == 123:
+        bInd=[0,1,2]
 
         
     #Reading load log.txt
@@ -587,7 +706,7 @@ if __name__ == "__main__":
         files = glob.glob('logsb{}\\log_*.txt'.format(dataMode))
     else:
         #pdb.set_trace() 
-        files = glob.glob('logsb1b2b3-0.8/log_*.txt')
+        files = glob.glob('./logs/logsb1b2-0.8/log_*.txt')
     
     for fID in np.arange(len(files)):
         print('reading',files[fID])
@@ -620,7 +739,7 @@ if __name__ == "__main__":
     data = Data(fname=fname,trainRatio=0.8, nCell=8, 
                  sYear=2000, bInd=bInd, eYear=10000, isWindows=isWindows, isClass=True,
                  dataMode=dataMode, outputCellMode=outputCellMode, 
-                 datapickleMode=datapickleMode, dataPath=dataPath,
+                 datapickleMode=datapickleMode,featuresPath='features', dataPath=dataPath,
                  trainingpicklePath=trainingpicklePath,picklePath=picklePath)
     """
         
