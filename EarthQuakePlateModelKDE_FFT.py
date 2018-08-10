@@ -53,7 +53,8 @@ class EarthQuakePlateModel:
         # 組み合わせデータの保存場所
         self.logPath = './logs'
         self.dataPath = dataPath
-        
+        # 特徴量の保存場所
+        self.features = 'features'
         # log file
         self.logName = logName
         # log file Path
@@ -132,7 +133,7 @@ class EarthQuakePlateModel:
             plt.show()            
         
         # pklデータの保存
-        fullPath = os.path.join(self.dataPath,"{}{}.pkl".format(prefix,self.logName))
+        fullPath = os.path.join(self.features,self.dataPath,"{}{}.pkl".format(prefix,self.logName))
         with open(fullPath,'wb') as fp:
             pickle.dump(self.yV,fp)
             pickle.dump(log.B,fp)
@@ -442,13 +443,13 @@ class Data:
             flag = False
             # データの読み込み
             for fID in np.arange(self.nData):
-                
+                            
                 if isWindows:
                     file = files[fID].split('\\')[1]
                 else:
-                    file = files[fID].split('/')[1]
+                    file = files[fID].split('/')[2]
                     
-                fullPath = os.path.join(dataPath,file)
+                fullPath = os.path.join(featuresPath,dataPath,file)
                 
                 with open(fullPath,'rb') as fp:
                     tmpyV = pickle.load(fp)
@@ -700,21 +701,22 @@ if __name__ == "__main__":
     elif outputCellMode == 123:
         bInd=[0,1,2]
 
-        
+    """    
     #Reading load log.txt
+    # ここで、読み取るファイルの指定
     if isWindows:
         files = glob.glob('logsb{}\\log_*.txt'.format(dataMode))
     else:
         #pdb.set_trace() 
-        files = glob.glob('./logs/logsb1b2-0.8/log_*.txt')
-    
+        files = glob.glob('./logs/b1b2/log_*.txt')
+           
     for fID in np.arange(len(files)):
         print('reading',files[fID])
 
         if isWindows:
             file = files[fID].split('\\')[1]
         else:
-            file = files[fID].split('/')[1]
+            file = files[fID].split('/')[3]
         
         # 地震プレートモデル用のオブジェクト
         log = EarthQuakePlateModel(dataMode,file,nCell=8,nYear=10000)
@@ -728,20 +730,20 @@ if __name__ == "__main__":
 
         # 保存
         log.plotV(isPlotShow=False,isYearly=False,prefix='kde_fft_')
-    
+    """
     ############# Data作成の手順 #########################
     # 1. data=...の中のMode,Pathを指定する
     # 2. datapickleMode　を　3-2-1の順番でpickleを保存と読み込み
     #####################################################
     
-    """
+    
     #このファイルから直接Mode指定するときは、dataインスタンスの値を変更する必要がある（コマンドからは反応しない）
     data = Data(fname=fname,trainRatio=0.8, nCell=8, 
                  sYear=2000, bInd=bInd, eYear=10000, isWindows=isWindows, isClass=True,
                  dataMode=dataMode, outputCellMode=outputCellMode, 
                  datapickleMode=datapickleMode,featuresPath='features', dataPath=dataPath,
                  trainingpicklePath=trainingpicklePath,picklePath=picklePath)
-    """
+    
         
     
 ############################################

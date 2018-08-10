@@ -37,8 +37,8 @@ class Trainingeqp():
         
         if dataMode == 12:
             dataPath = 'b1b2'
-            picklePath='xydatab1b2.pkl'
-            trainingpicklePath='traintestdatab1b2.pkl'
+            picklePath='xydatab1.pkl'
+            trainingpicklePath='traintestdatab1.pkl'
             fname='kde_fft_log_20*'
         
         elif dataMode == 123:
@@ -183,7 +183,7 @@ class Trainingeqp():
             y2 = fc(h,self.w2_2,self.b2_2,keepProb)
             
             return y1, y2
-            
+    ##未実装(考える)##        
     def ThreeDimensions_nn_class(self,x,reuse=False):
         def weight_variable(name,shape,trainable):
             return tf.get_variable(name,shape,initializer=tf.random_normal_initializer(stddev=0.1),trainable=trainable)
@@ -256,9 +256,9 @@ if __name__ == "__main__":
     batchSize = 750
     
     # b1b2両方を出力したいときは True
-    isTwoDimensionsPrediction = False
+    isTwoDimensionsPrediction = True
     
-    if isTwoDimensionsPredicton:
+    if isTwoDimensionsPrediction:
         
         ######################### Multi Prediction ###########################################
         x = tf.placeholder(tf.float32, shape=[None,nCell*nWindow])
@@ -389,17 +389,18 @@ if __name__ == "__main__":
                 print("--------------------------")
                 
                 # save model to file
+                # 実験によってmodeldirの名前変更
                 saver = tf.train.Saver()
-                saver.save(sess,"models/modelsb{0}/model_{1}.ckpt".format(dataMode,i))
+                saver.save(sess,"./models/modelsmulti/model_{}.ckpt".format(i))
                 #saver.restore(sess,"modelsb{0}/model_{1}.ckpt".format(dataMode,i))
                 
                 # Save loss
-                with open('./visualization/lossmulti_{}.pickle'.format(i),'wb') as fp:
+                with open('./visualization/loss/lossmulti_{}.pickle'.format(i),'wb') as fp:
                     pickle.dump(MultilossTest,fp)
                     pickle.dump(lossTestb1,fp)
                     pickle.dump(lossTestb2,fp)
                 # Save accuracy
-                with open('./visualization/accuracymulti_{}.pickle'.format(i),'wb') as fp:
+                with open('./visualization/accuracy/accuracymulti_{}.pickle'.format(i),'wb') as fp:
                     pickle.dump(accuracyb1,fp)
                     pickle.dump(accuracyb2,fp)
 
@@ -509,15 +510,21 @@ if __name__ == "__main__":
                 
                 # Save loss
                 # loss　もaccuracy　も番号を変える
-                with open('./visualization/lossb1_{}.pickle'.format(i),'wb') as fp:
+                with open('./visualization/loss/lossb{0}_{1}.pickle'.format(outputCellMode,i),'wb') as fp:
                     pickle.dump(lossTest,fp)
                 # Save accuracy
-                with open('./visualization/accuracyb1_{}.pickle'.format(i),'wb') as fp:
+                with open('./visualization/accuracy/accuracyb{0}_{1}.pickle'.format(outputCellMode,i),'wb') as fp:
                     pickle.dump(accuracy,fp)
+
+                # save model to file
+                saver = tf.train.Saver()
+                saver.save(sess,"./models/modelsb{0}/model_{1}.ckpt".format(outputCellMode,i))
+                #saver.restore(sess,"modelsb{0}/model_{1}.ckpt".format(dataMode,i))
+                
 
 
         # w1,b1を保存
-        with open("trainingw{0}/process_{1}.pickle".format(outputCellMode,i), "wb") as fp:
+        with open("./training/trainingw{0}/process_{1}.pickle".format(outputCellMode,i), "wb") as fp:
                     pickle.dump(minw1Train,fp)
                     pickle.dump(minw1Test,fp)
                     pickle.dump(minb1Train,fp)
