@@ -11,7 +11,7 @@ import pdb
 import string
 
 import matplotlib as mpl
-#mpl.use('Agg')
+mpl.use('Agg')
 import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 

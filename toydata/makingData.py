@@ -4,6 +4,9 @@ Created on Mon Jul 22 15:51:43 2019
 
 @author: yu
 """
+import os
+import pickle
+import pdb
 
 import numpy as np
 
@@ -13,9 +16,13 @@ trainRatio = 0.8
 # number of data
 nData = 8000
 # number of train data
-nTrain = int(nData * trainRatio)
+#nTrain = int(nData * trainRatio)
 # number of test data
-nTest = int(nData - nTrain)
+#nTest = int(nData - nTrain)
+
+nTrain = 3200
+nTest = 800
+    
 # batch random index
 batchRandInd = np.random.permutation(nTrain)
 # -----------------------------------------------------------------------------
@@ -33,7 +40,25 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
         nTrain: Number of train data
     Returns:
         train,test data
-    """    
+    """
+    
+    
+    # nTrain,nTest:1000,7000 3200,800 500,3500 6400,1600
+    sigma = 0.0000001
+    pNum = 2
+    dataPath = "trainData"
+    toydataPath = "toyData_{}_{}_{}_{}.pickle".format(sigma,pNum,nTrain,nTest)
+    toyDatafullPath = os.path.join(dataPath,toydataPath)
+    with open(toyDatafullPath,"rb") as fp:
+        x1Train = pickle.load(fp)
+        x2Train = pickle.load(fp)
+        yTrain = pickle.load(fp)
+        x1Test = pickle.load(fp)
+        x2Test = pickle.load(fp)
+        yTest = pickle.load(fp)
+        y = pickle.load(fp)
+    
+    """
     # Make target variable, y ~ U(x) U: i.i.d.
     y = np.random.uniform(yMin,yMax,nData)
     x1 = np.sin(pNum * y) + 1 / np.log(y) + noise
@@ -46,7 +71,7 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
     x1Test = x1[nTrain:][:,np.newaxis]
     x2Test = x2[nTrain:][:,np.newaxis]
     yTest = y[nTrain:][:,np.newaxis]
-
+    """
     # shape=[number of data, dimention]
     return x1Train, x2Train, yTrain, x1Test, x2Test, yTest, y
 #-----------------------------------------------------------------------------#      
@@ -54,24 +79,7 @@ def AnotationY(target,yMin=2,yMax=6,nClass=10,beta=1):
     """
     Anotate target variables y.
     """
-    """
-    # nTrain,nTest:1000,7000 3200,800 500,3500 6400,1600
-    nTrain = 1000
-    nTest = 7000
-    sigma = 0.0000001
-    pNum = 3
-    dataPath = "trainData"
-    toydataPath = "toyData_{}_{}_{}_{}.pickle".format(sigma,pNum,nTrain,nTest)
-    toyDatafullPath = os.path.join(dataPath,toydataPath)
-    with open(toyDatafullPath,"rb") as fp:
-        x1Train = pickle.load(fp)
-        x2Train = pickle.load(fp)
-        yTrain = pickle.load(fp)
-        x1Test = pickle.load(fp)
-        x2Test = pickle.load(fp)
-        yTest = pickle.load(fp)
-        yData = pickle.load(fp)
-    """
+    
     # class
     yClass = np.arange(yMin,yMax + beta, beta) 
  
