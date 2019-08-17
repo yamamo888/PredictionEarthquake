@@ -79,17 +79,12 @@ depth = int(sys.argv[5])
 <a id="ID_1"></a>
 
 ## 使用するらせん階段データ : `makingData.py`
-($$x_1$$,$$x_2$$,$$y$$)からなる３次元のらせん階段データを作成する。
-$$y^n$$は、$$ 0 $$ ~ $$ \Sigma $$ の一様乱数分布 U($$0$$, $$\Sigma$$) に従って発生させたデータ。以下、目的変数yと説明変数$x_1$,$x_2$の関係式:<br>
+(x1,x2,y)からなる３次元のらせん階段データを作成する。
+y は 0 ~ Sigma  の一様乱数分布 U(0,Sigma) に従って発生させたデータ。以下、目的変数yと説明変数 x1,x2 の関係式:<br>
 
-```math
-\ begin{align}
-y^n  &\overset{\mathrm{i.i.d}{\sim}}U(y_\mathrm{min},y_\mathrm{max}) \\
-x_1^n &= sin(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma) \\
-x_2^n &= cos(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma) \\
-\ end{align}
+> <img width="100" alt=makedata src=/results/makedata.png>
 
-```
+
 <br>
 
 <a id="ID_1-1"></a>
@@ -140,8 +135,8 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
 <br>
 
 - 引数の説明
-	- $$x_1$$,$$x_2$$の回転数 `pNum` と x1、x2の分散 `noise` は、 `trainingModel.py` を実行するときにコマンド引数で指定されたものが渡される。
-	- 目的変数の範囲の最小値 $$y_\mathrm{min}$$と最大値 $$y_\mathrm{max}$$ は、2,6。
+	- x1,x2 の回転数 `pNum` と x1、x2の分散 `noise` は、 `trainingModel.py` を実行するときにコマンド引数で指定されたものが渡される。
+	- 目的変数の範囲の最小値 `yMin` と最大値 `yMax` は、2,6。
 
 
 <br>
@@ -535,7 +530,8 @@ def CreateRegInputOutput(x,y,cls_score):
 
 - 残差の範囲を_sigmoid関数_を用いて、[0,1] にエンコードする
 - sigmoid関数の傾き `alpha` は学習して最適化する
-- 残差とエンコードされた残差との関係式： $$\textbf{r_at}= \frac{1}{1 + exp{-\alpha \textbf{r}}}$$
+- 残差とエンコードされた残差との関係式： <bf>
+> ![rat](\results\rat.png)
 
 
 ```python:trainingModel.py
@@ -565,8 +561,8 @@ def TruncatedResidual(r,reuse=False):
 <br>
 
 - エンコードされた残差をもとの範囲の残差に戻す 
-- 式： $$\textbf{r} = \frac{-1}{\alpha}\log{\frac{1}{\textbf{r_at}} - 1 }$$ (残差とエンコードされた残差の関係式と逆)
-
+- 式：<bf>
+> ![r](\results\r.png)
 
 ```python:trainingModel.py
 def Reduce(r_at,alpha,reuse=False):
