@@ -9,26 +9,26 @@
 0. [使い方](#ID_0)
 	1. [コマンド](#ID_0-1)
 
-1. [使用するらせん階段データ: `makingData.py`](#ID_1)
+1. [使用するらせん階段データ : `makingData.py`](#ID_1)
 	1. [コードの説明](#ID_1-1)
 	2. [らせん階段の例(コードの実行結果)](#ID_1-2)
 
-2. [各手法のGraph作成 (tensorflow上): `trainingMdel.py`](#ID_2)
+2. [各手法のGraph作成 (tensorflow上) : `trainingMdel.py`](#ID_2)
 	1. [パラメータ](#ID_2-1-1)
 	2. [分類NNと回帰NN](#ID_2-1-2)
 	3. [Anchor-based regressionとATR-Netsの回帰NNで使用する入力と出力の作成](#ID_2-1-3)
 	4. [ATR-Netsの工夫点](#ID_2-1-4)
-	5. [関数の呼び出し](#ID_2-1-5)
-	6. [誤差関数・最適化](#ID_2-1-6)
+	5. [誤差関数・最適化](#ID_2-1-5)
+	6. [関数の呼び出し](#ID_2-1-6)
 
-3. [各手法のGraph実行 (python上): `trainingMdel.py`](#ID_3)
-	0. [ミニバッチ(学習データ): `makingData.py`](#ID_3-1)
-	1. [Baseline Regression](#ID_3-2)
-	2. [Anchor-based regression](#ID_3-3)
-	3. [ATR-Nets](#ID_3-4)
-	4. [モデルの保存](#ID_3-5)
+3. [各手法のGraph実行 (python上) : `trainingMdel.py`](#ID_3)
+	1. [ミニバッチ(学習データ) : `makingData.py`](#ID_3-1)
+	2. [Baseline Regression](#ID_3-2)
+	3. [Anchor-based regression](#ID_3-3)
+	4. [ATR-Nets](#ID_3-4)
+	5. [モデルの保存](#ID_3-5)
 
-3. [実行結果: `plot.py`](#ID_4)
+3. [実行結果 : `plot.py`](#ID_4)
 
 <a id="ID_0"></a>
 
@@ -41,8 +41,7 @@
 ```
 python trainingModel.py <モデルの種類(methodModel)> <ノイズ(sigma)> <クラス数(number of class)> <回転数(number of rotation)> <階層数(number of layer in Regression NN)>
 ```
-- 例：モデルは Anchor-based Regression、説明変数の分散は 0.00001、クラス数は 10、回転数 5、3階層回帰NNを使用したい場合:<br>
-
+- 例：モデルは Anchor-based Regression、説明変数の分散は 0.00001、クラス数は 10、回転数 5、3階層回帰NNを使用したい場合 :
 ```python trainingModel.py 1 0.00001 10 5 3```
 
 - クラス数は Baseline Regressionの時には必要ないが、指定する必要あり
@@ -52,7 +51,7 @@ python trainingModel.py <モデルの種類(methodModel)> <ノイズ(sigma)> <クラス数(nu
 
 ### コードの説明
 - モデルの種類設定 `methodModel` は 0 のとき Baseline Regression、1 のとき Anchor-based Regression、2 のとき ATR-Nets を実行する
-- 説明変数の分散 `sigma` は 0.0000001 以下がおすすめ ($x_1$,$x_2$ の大きさが小さいので)
+- 説明変数の分散 `sigma` は 0.0000001 以下がおすすめ ($$x_1$$,$$x_2$$ の大きさが小さいので)
 - 目的変数のクラス数 `nClass` は 10,20,50がおすすめ
 - 説明変数の回転数 `pNum`は 2か3か5ぐらいがおすすめ (1だと不定問題が起こらない、5以上は不定問題が起こりすぎるため)
 - 回帰NNの層数 `depth`は 3,4,5
@@ -80,12 +79,16 @@ depth = int(sys.argv[5])
 <a id="ID_1"></a>
 
 ## 使用するらせん階段データ : `makingData.py`
-($x_1$,$x_2$,y)からなる３次元のらせん階段データを作成する。
-$y^n$は、0 ~ $Sigma$ の一様乱数分布 U(0, $\Sigma$) に従って発生させたデータ。以下、目的変数yと説明変数$x_1$,$x_2$の関係式:<br>
+($$x_1$$,$$x_2$$,$$y$$)からなる３次元のらせん階段データを作成する。
+$$y^n$$は、$$ 0 $$ ~ $$ \Sigma $$ の一様乱数分布 U($$0$$, $$\Sigma$$) に従って発生させたデータ。以下、目的変数yと説明変数$x_1$,$x_2$の関係式:<br>
+
 ```math
-y^n &\overset{\mathrm{i.i.d}{\sim}}U(y_\mathrm{min},y_\mathrm{max})
-x_1^n &= sin(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma)
-x_2^n &= cos(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma)
+\ begin{align}
+y^n  &\overset{\mathrm{i.i.d}{\sim}}U(y_\mathrm{min},y_\mathrm{max}) \\
+x_1^n &= sin(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma) \\
+x_2^n &= cos(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma) \\
+\ end{align}
+
 ```
 <br>
 
@@ -137,8 +140,8 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
 <br>
 
 - 引数の説明
-	- $x_1$,$x_2$の回転数 `pNum` と x1、x2の分散 `noise` は、 `trainingModel.py` を実行するときにコマンド引数で指定されたものが渡される。
-	- 目的変数の範囲の最小値 y_\mathrm{min}と最大値 y_\mathrm{max}は、2,6。
+	- $$x_1$$,$$x_2$$の回転数 `pNum` と x1、x2の分散 `noise` は、 `trainingModel.py` を実行するときにコマンド引数で指定されたものが渡される。
+	- 目的変数の範囲の最小値 $$y_\mathrm{min}$$と最大値 $$y_\mathrm{max}$$ は、2,6。
 
 
 <br>
@@ -203,7 +206,7 @@ def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
 
 <a id="ID_1-1"></a>
 
-## 各手法による予測処理: `trainingMdel.py`
+## 各手法による予測処理: `trainingModel.py`
 
 Baseline Regression は、回帰ニューラルネットワーク (NN)であり、Anchor-based Regression は、分類NNと回帰NNを組み合わせたものであり、ATR-Netsは分類NNと回帰NNに、残差を拡大するネットワークを追加したものである。3つの手法を `trainingModel.py` にて1つにまとめている。3つ同時に実行することはできず、コマンド引数で`methodModel`を指定されたモデルが1つだけが実行される。実行方法はコマンドを参照。 <a id="ID_0-1"></a>
 
@@ -294,7 +297,7 @@ else:
 
 <br>
 
-- `makingData.py`から説明変数と目的変数(学習とテストの両方)とを受け取り、説明変数の x は $x_1$,$x_2$ を concat して2次元のデータにする。
+- `makingData.py`から説明変数と目的変数(学習とテストの両方)とを受け取り、説明変数の x は $$x_1$$,$$x_2$$ を concat して2次元のデータにする。
 
 ```python:trainingData.py
 # --------------------------- data --------------------------------------------
@@ -336,7 +339,7 @@ def alpha_variable(name,shape):
 
 - 活性化関数と全結合を定義する。全結合 + sigmoid `fc_sigmoid`、全結合 + relu `fc_relu`、全結合のみ `fc`を定義。
 - 入力は、入力 inputs、重み w、バイアス b、ドロップアウト数 keepProb を指定。
-- keepProbはドロップアウトするノード数を指定できる。例えば、0.5の場合は半分のノードしか使用されない。ただし、テスト時は1.0にしなければならない。
+- keepProbはドロップアウトするノード数を指定できる。例えば、0.5 の場合は半分のノードしか使用されない。ただし、テスト時は1.0にしなければならない。
 
 
 ```python:trainingModel.py
@@ -367,9 +370,11 @@ def fc(inputs,w,b,keepProb):
 
 ### 分類NNと回帰NN
 
-- {入力層: 2ノード、隠れ層1: 128ノード、隠れ層2: 128ノード、出力層: 1ノード} の分類NN (`Classify`) は、Anchor-based RegressionとATR-Netsで使用。
--入力 x は2次元行列で、出力 y はクラス数分の1次元ベクトル (0 ~ 1のクラス確率に対応)。
--各種ノード数はパラメータの項目を参照　<a id="ID_0-1"></a>
+- 分類NN
+
+	- {入力層: 2ノード、隠れ層1: 128ノード、隠れ層2: 128ノード、出力層: 1ノード} の分類NN (`Classify`) は、Anchor-based RegressionとATR-Netsで使用。
+	- 入力 x は2次元行列で、出力 y はクラス数分の1次元ベクトル (0 ~ 1のクラス確率に対応)。
+	- 各種ノード数はパラメータの項目を参照　
 
 
 
@@ -406,15 +411,16 @@ def Classify(x,reuse=False):
 
 <br>
 
-- 回帰NN (`Regress`) はすべての手法で用いる。<font color="Red">ただし、ATR-Netsの時だけ出力層の活性化関数をsigmoidに指定(expを取るときにマイナス値は計算できないから)。
+- 回帰NN
+	- 回帰NN (`Regress`) はすべての手法で用いる。<font color="Red">ただし、ATR-Netsの時だけ出力層の活性化関数をsigmoidに指定(expを取るときにマイナス値は計算できないから)。
 
-- {入力層: 2ノード or 3ノード、隠れ層1: 128ノード、隠れ層2: 128ノード、出力層: 1ノード} の回帰NN (`Regress`)
+	- {入力層: 2ノード or 3ノード、隠れ層1: 128ノード、隠れ層2: 128ノード、出力層: 1ノード} の回帰NN (`Regress`)
 
-- 入力 `x_reg` は、Baseline Regressionの時は2次元行列の説明変数で、Anchor-based regressionとATR-Netsの時は2次元行列の説明変数と1次元のクラスの中心値とをconcatした3次元行列である。
+	- 入力 `x_reg` は、Baseline Regressionの時は2次元行列の説明変数で、Anchor-based regressionとATR-Netsの時は2次元行列の説明変数と1次元のクラスの中心値とをconcatした3次元行列である。
 
-- 出力は、Baseline Regression の時は1次元ベクトルの目的変数の予測値で、Anchor-based regressionとATR-Netsの時は1次元ベクトルの残差(=真値とクラスの中心値)である。
+	- 出力は、Baseline Regression の時は1次元ベクトルの目的変数の予測値で、Anchor-based regressionとATR-Netsの時は1次元ベクトルの残差(=真値とクラスの中心値)である。
 
--各種ノード数はパラメータの項目を参照　<a id="ID_0-1"></a>
+	- 各種ノード数はパラメータの項目を参照　
 
 
 ```python:trainingModel.py
@@ -529,7 +535,7 @@ def CreateRegInputOutput(x,y,cls_score):
 
 - 残差の範囲を_sigmoid関数_を用いて、[0,1] にエンコードする
 - sigmoid関数の傾き `alpha` は学習して最適化する
-- 残差とエンコードされた残差との関係式： $\textbf{r_at}= \frac{1}{1 + exp{-\alpha \textbf{r}}}$
+- 残差とエンコードされた残差との関係式： $$\textbf{r_at}= \frac{1}{1 + exp{-\alpha \textbf{r}}}$$
 
 
 ```python:trainingModel.py
@@ -559,7 +565,7 @@ def TruncatedResidual(r,reuse=False):
 <br>
 
 - エンコードされた残差をもとの範囲の残差に戻す 
-- 式： $\textbf{r} = \frac{-1}{\alpha}\log{\frac{1}{\textbf{r_at}} - 1 }$ (残差とエンコードされた残差の関係式と逆)
+- 式： $$\textbf{r} = \frac{-1}{\alpha}\log{\frac{1}{\textbf{r_at}} - 1 }$$ (残差とエンコードされた残差の関係式と逆)
 
 
 ```python:trainingModel.py
@@ -582,7 +588,7 @@ def Reduce(r_at,alpha,reuse=False):
 
 <br>
 
-<a id="ID_2-1-4"></a>
+<a id="ID_2-1-5"></a>
 
 ### 損失関数・最適化
 
@@ -613,7 +619,7 @@ def Optimizer(loss,name_scope="Regress"):
 <br>
 
 
-<a id="ID_2-1-5"></a>
+<a id="ID_2-1-6"></a>
 
 ### 関数の呼び出し
 
@@ -671,9 +677,10 @@ pred_y_test = pred_cls_center_test + reduce_res_op_test
 <br>
 
 - 誤差関数
-- Baseline Regressionは `loss_reg`、Anchor-based regressionは `loss_cls`と`loss_anc`、ATR-Netsは`loss_cls`と`loss_atr`と`loss_alpha`
-- `loss_cls`は `isCE=True`
-- `loss_cls`はクラスのラベル、 `loss_reg`は目的変数、`loss_anc`は残差、`loss_atr`はエンコードされた残差が真値である。`loss_cls`は分類NNの出力 `cls_op`で`loss_reg`、`loss_anc`、`loss_atr`は回帰NNの出力 `reg_op` を使用する。
+	- Baseline Regressionは `loss_reg`、Anchor-based regressionは `loss_cls`と`loss_anc`、ATR-Netsは`loss_cls`と`loss_atr`と`loss_alpha`
+	- `loss_cls`は `isCE=True`
+	- `loss_cls`はクラスのラベル、 `loss_reg`は目的変数、`loss_anc`は残差、`loss_atr`はエンコードされた残差が真値である。`loss_cls`は分類NNの出力 `cls_op`で`loss_reg`、`loss_anc`、`loss_atr`は回帰NNの出力 `reg_op` を使用する。
+
 
 ```python:trainingModel.py
 # Classification loss
@@ -703,8 +710,8 @@ loss_alpha_test = Loss(y,pred_y_test)
 ``` 
 
 - 最適化
-- Baseline Regressionは `trainer_reg`、Anchor-based regressionは`trainer_cls`と`trainer_anc`、ATR-Netsは`trainer_cls`と`trainer_atr`と`trainer_alpha` 
-- name_scopeで分類NNは`Classify`、alpha学習器は`TrResidual`を指定。(回帰NNは指定する必要なし)
+	- Baseline Regressionは `trainer_reg`、Anchor-based regressionは`trainer_cls`と`trainer_anc`、ATR-Netsは`trainer_cls`と`trainer_atr`と`trainer_alpha` 
+	- name_scopeで分類NNは`Classify`、alpha学習器は`TrResidual`を指定。(回帰NNは指定する必要なし)
 
 ```python:trainingModel.py
 # for classification 
@@ -727,7 +734,7 @@ trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 <a id="ID_3"></a>
 
 
-## 各手法のGraph実行 (python上): `trainingMdel.py`
+## 各手法のGraph実行 (python上) : `trainingMdel.py`
 ミニバッチデータ取得、学習フェーズ実行、テストフェーズ実行の3つの段階に大きく分けられる。
 
 <br>
@@ -736,7 +743,7 @@ trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
 <a id="ID_3-1"></a>
 
-### ミニバッチ
+### ミニバッチ : `makingData.py`
 
 ```python:makingData.py
 
@@ -758,7 +765,7 @@ def nextBatch(Otr,Ttr,Tlabel,batchSize,batchCnt = 0):
     return batchX,batchY,batchlabelY
 ```
 - 引数
-	- Otr: 学習データの説明変数 $x_1$,$x_2$
+	- Otr: 学習データの説明変数 $$x_1$$,$$x_2$$
 	- Ttr: 学習データの目的変数 y
 	- Tlabel: 学習データの目的変数のラベル (one-hot)
 	- batchSize: バッチサイズ
@@ -769,7 +776,8 @@ def nextBatch(Otr,Ttr,Tlabel,batchSize,batchCnt = 0):
 - ミニバッチ関数を呼ぶ
 ```python:trainingModel.py
 # Get mini-batch
-batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel)
+batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel,batchSize,batchCnt = 0)
+```
 
 <br>
 
@@ -777,7 +785,7 @@ batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel)
 
 
 ### Baseline Regression
-- Optimizer `trainer_reg`、目的変数の予測値 `res_op`、 Loss `loss_reg`
+- Optimizerは `trainer_reg`、目的変数の予測値 `reg_op`、 Lossは `loss_reg`
 - feed_dictで、`x_reg`に説明変数、`y`に目的変数を与える
 
 ```python:makingData.py
@@ -795,7 +803,8 @@ batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel)
 <a id="ID_3-3"></a>
 
 ### Anchor-based
-- Optimizer `trainer_cls`(分類NN)と `trainer_anc`(回帰NN)、クラスの中心値 `pred_cls_center` と残差の予測値 `res_op`、 Loss `loss_cls`(分類NN)と`loss_anc`(回帰NN)
+
+- Optimizerは `trainer_cls`(分類NN)と `trainer_anc`(回帰NN)、クラスの中心値 `pred_cls_center` と残差の予測値 `reg_op`、 Lossは `loss_cls`(分類NN)と`loss_anc`(回帰NN)
 - feed_dictで、`x_cls`に説明変数、`x_reg`にクラスの中心値と説明変数をconcatしたもの、`y`に目的変数、`y_label`に目的変数のラベル(one-hot)を与える
 - 目的変数の予測値 `trainPred` は クラスの中心値 `trainClsCenter` + 残差の予測値 `trainResPred` (python上の表記)
 
@@ -832,7 +841,7 @@ elif methodModel == 1:
         
 ### ATR-Nets
 
-- Optimizer `trainer_cls`(分類NN)と `trainer_atr`(回帰NN)、クラスの中心値 `pred_cls_center` と拡大した残差の予測値 `res_op`、 Loss `loss_cls`(分類NN)と`loss_atr`(回帰NN)と`loss_alpha`(alpha学習)
+- Optimizerは `trainer_cls`(分類NN)と `trainer_atr`(回帰NN)、クラスの中心値 `pred_cls_center` と拡大した残差の予測値 `reg_op`、 Lossは `loss_cls`(分類NN)と`loss_atr`(回帰NN)と`loss_alpha`(alpha学習)
 - feed_dictで、`x_cls`に説明変数、`x_reg`にクラスの中心値と説明変数をconcatしたもの、`y`に目的変数、`y_label`に目的変数のラベル(one-hot)を与える
 - 目的変数の予測値 `trainPred` は クラスの中心値 `trainClsCenter` + 拡大された残差をもとに戻した予測値 `trainRResPred` (python上の表記)
 
@@ -938,13 +947,4 @@ def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLoss
         plt.savefig(fullPath)
 #-----------------------------------------------------------------------------#      
 ```
-
-
-
-
-
-
-
-
-
 
