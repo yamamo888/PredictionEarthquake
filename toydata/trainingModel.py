@@ -304,7 +304,7 @@ def Reduce(r_at,param,reuse=False):
         if reuse:
             scope.reuse_variables()
         
-        pred_r = (-1/r_at) * tf.log((1/param) - 1)
+        pred_r = (-1/param) * tf.log((1/r_at) - 1)
         
         return pred_r
 #-----------------------------------------------------------------------------#    
