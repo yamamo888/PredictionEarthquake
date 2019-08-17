@@ -1,57 +1,64 @@
-ï»¿# Tensorflow ã‚’ç”¨ã„ãŸ Baseline Regression ã¨Anchor-based Regression ã¨ææ¡ˆæ³• ATR-Nets ã®å®Ÿè£…
+# Tensorflow ‚ğ—p‚¢‚½ Baseline Regression ‚ÆAnchor-based Regression ‚Æ’ñˆÄ–@ ATR-Nets ‚ÌÀ‘•
 
-ã“ã® `README.md` ã«ã¯ã€å„ã‚³ãƒ¼ãƒ‰ã®å®Ÿè¡Œçµæœã€å„ã‚³ãƒ¼ãƒ‰ã®èª¬æ˜ã‚’è¨˜è¼‰ã—ã¦ã„ã¾ã™ã€‚
-å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã¯ `trainingModel.py`ã§ã€ ãƒ‡ãƒ¼ã‚¿ä½œæˆã¯ `makingData.py`ã€ çµæœã®ç”»åƒä½œæˆãƒ»å‡ºåŠ›ã¯ `plot.py` ã§è¡Œã£ã¦ã„ã¾ã™ã€‚`makingData.py` ã¨ `plot.py` ã¯ã€å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰å‘¼ã³å‡ºã•ã‚Œã¾ã™ã€‚
+‚±‚Ì `README.md` ‚É‚ÍAŠeƒR[ƒh‚ÌÀsŒ‹‰ÊAŠeƒR[ƒh‚Ìà–¾‚ğ‹LÚ‚µ‚Ä‚¢‚Ü‚·B
+Àsƒtƒ@ƒCƒ‹‚Í `trainingModel.py`‚ÅA ƒf[ƒ^ì¬‚Í `makingData.py`A Œ‹‰Ê‚Ì‰æ‘œì¬Eo—Í‚Í `plot.py` ‚ÅAs‚Á‚Ä‚¢‚Ü‚·B`makingData.py` ‚Æ `plot.py` ‚ÍAÀsƒtƒ@ƒCƒ‹‚©‚çŒÄ‚Ño‚³‚ê‚Ü‚·B
 
 
-## é …ç›® [Contents]
+## €–Ú [Contents]
 
-0. [ä½¿ã„æ–¹](#ID_0)
-	1. [ã‚³ãƒãƒ³ãƒ‰](#ID_0-1)
+0. [g‚¢•û](#ID_0)
+	1. [ƒRƒ}ƒ“ƒh](#ID_0-1)
 
-1. [ä½¿ç”¨ã™ã‚‹ã‚‰ã›ã‚“éšæ®µãƒ‡ãƒ¼ã‚¿: `makingData.py`](#ID_1)
-	1. [ã‚³ãƒ¼ãƒ‰ã®èª¬æ˜](#ID_1-1)
-	2. [ã‚‰ã›ã‚“éšæ®µã®ä¾‹(ã‚³ãƒ¼ãƒ‰ã®å®Ÿè¡Œçµæœ)](#ID_1-2)
+1. [g—p‚·‚é‚ç‚¹‚ñŠK’iƒf[ƒ^ : `makingData.py`](#ID_1)
+	1. [ƒR[ƒh‚Ìà–¾](#ID_1-1)
+	2. [‚ç‚¹‚ñŠK’i‚Ì—á(ƒR[ƒh‚ÌÀsŒ‹‰Ê)](#ID_1-2)
 
-2. [å„æ‰‹æ³•ã®Graphä½œæˆ (tensorflowä¸Š): `trainingMdel.py`](#ID_2)
-	1. [ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿](#ID_2-1-1)
-	2. [åˆ†é¡NNã¨å›å¸°NN](#ID_2-1-2)
-	3. [Anchor-based regressionã¨ATR-Netsã®å›å¸°NNã§ä½¿ç”¨ã™ã‚‹å…¥åŠ›ã¨å‡ºåŠ›ã®ä½œæˆ](#ID_2-1-3)
-	4. [ATR-Netsã®å·¥å¤«ç‚¹](#ID_2-1-4)
-	5. [é–¢æ•°ã®å‘¼ã³å‡ºã—](#ID_2-1-5)
-	6. [èª¤å·®é–¢æ•°ãƒ»æœ€é©åŒ–](#ID_2-1-6)
+2. [Šeè–@‚ÌGraphì¬ (tensorflowã) : `trainingMdel.py`](#ID_2)
+	1. [ƒpƒ‰ƒ[ƒ^](#ID_2-1-1)
+	2. [•ª—ŞNN‚Æ‰ñ‹ANN](#ID_2-1-2)
+	3. [Anchor-based regression‚ÆATR-Nets‚Ì‰ñ‹ANN‚Åg—p‚·‚é“ü—Í‚Æo—Í‚Ìì¬](#ID_2-1-3)
+	4. [ATR-Nets‚ÌH•v“_](#ID_2-1-4)
+	5. [Œë·ŠÖ”EÅ“K‰»](#ID_2-1-5)
+	6. [ŠÖ”‚ÌŒÄ‚Ño‚µ](#ID_2-1-6)
 
-3. [å„æ‰‹æ³•ã®Graphå®Ÿè¡Œ (pythonä¸Š): `trainingMdel.py`](#ID_3)
-	0. [ãƒŸãƒ‹ãƒãƒƒãƒ(å­¦ç¿’ãƒ‡ãƒ¼ã‚¿): `makingData.py`](#ID_3-1)
-	1. [Baseline Regression](#ID_3-2)
-	2. [Anchor-based regression](#ID_3-3)
-	3. [ATR-Nets](#ID_3-4)
-	4. [ãƒ¢ãƒ‡ãƒ«ã®ä¿å­˜](#ID_3-5)
-3. [å®Ÿè¡Œçµæœ](#ID_3)
+3. [Šeè–@‚ÌGraphÀs (pythonã) : `trainingMdel.py`](#ID_3)
+	1. [ƒ~ƒjƒoƒbƒ`(ŠwKƒf[ƒ^) : `makingData.py`](#ID_3-1)
+	2. [Baseline Regression](#ID_3-2)
+	3. [Anchor-based regression](#ID_3-3)
+	4. [ATR-Nets](#ID_3-4)
+	5. [ƒ‚ƒfƒ‹‚Ì•Û‘¶](#ID_3-5)
+
+3. [ÀsŒ‹‰Ê : `plot.py`](#ID_4)
 
 <a id="ID_0"></a>
 
-## ä½¿ã„æ–¹
+## g‚¢•û
 
 <a id="ID_0-1"></a>
 
-### ã‚³ãƒãƒ³ãƒ‰
+### ƒRƒ}ƒ“ƒh
+
 ```
-python trainingModel.py <ãƒ¢ãƒ‡ãƒ«ã®ç¨®é¡(methodModel)> <ãƒã‚¤ã‚º(sigma)> <ã‚¯ãƒ©ã‚¹æ•°(number of class)> <å›è»¢æ•°(number of rotation)> <éšå±¤æ•°(number of layer in Regression NN)>
+python trainingModel.py <ƒ‚ƒfƒ‹‚Ìí—Ş(methodModel)> <ƒmƒCƒY(sigma)> <ƒNƒ‰ƒX”(number of class)> <‰ñ“]”(number of rotation)> <ŠK‘w”(number of layer in Regression NN)>
 ```
-ãƒ¢ãƒ‡ãƒ«ã¯ Anchor-based Regressionã€èª¬æ˜å¤‰æ•°ã®åˆ†æ•£ã¯ 0.00001ã€ã‚¯ãƒ©ã‚¹æ•°ã¯ 10ã€å›è»¢æ•° 5ã€3éšå±¤å›å¸°NNã‚’ä½¿ç”¨ã—ãŸã„å ´åˆ:<br>
+- —áFƒ‚ƒfƒ‹‚Í Anchor-based RegressionAà–¾•Ï”‚Ì•ªU‚Í 0.00001AƒNƒ‰ƒX”‚Í 10A‰ñ“]” 5A3ŠK‘w‰ñ‹ANN‚ğg—p‚µ‚½‚¢ê‡ :
 ```python trainingModel.py 1 0.00001 10 5 3```
 
-<br>
+- ƒNƒ‰ƒX”‚Í Baseline Regression‚Ì‚É‚Í•K—v‚È‚¢‚ªAw’è‚·‚é•K—v‚ ‚è
 
-### ã‚³ãƒ¼ãƒ‰ã®èª¬æ˜
-- ãƒ¢ãƒ‡ãƒ«ã®ç¨®é¡è¨­å®š `methodModel` ã¯ 0 ã®ã¨ã Baseline Regressionã€1 ã®ã¨ã Anchor-based Regressionã€2 ã®ã¨ã ATR-Nets ã‚’å®Ÿè¡Œã™ã‚‹
-- èª¬æ˜å¤‰æ•°ã®åˆ†æ•£ `sigma` ã¯ 0.0000001 ä»¥ä¸‹ãŒãŠã™ã™ã‚ ($x_1$,$x_2$ ã®å¤§ãã•ãŒå°ã•ã„ã®ã§)
-- ç›®çš„å¤‰æ•°ã®ã‚¯ãƒ©ã‚¹æ•° `nClass` ã¯ 10,20,50ãŒãŠã™ã™ã‚
-- èª¬æ˜å¤‰æ•°ã®å›è»¢æ•° `pNum`ã¯ 2ã‹3ã‹5ãã‚‰ã„ãŒãŠã™ã™ã‚ (1ã ã¨ä¸å®šå•é¡ŒãŒèµ·ã“ã‚‰ãªã„ã€5ä»¥ä¸Šã¯ä¸å®šå•é¡ŒãŒèµ·ã“ã‚Šã™ãã‚‹ãŸã‚)
-- å›å¸°NNã®å±¤æ•° `depth`ã¯ 3,4,5
 
 <br>
+
+### ƒR[ƒh‚Ìà–¾
+- ƒ‚ƒfƒ‹‚Ìí—Şİ’è `methodModel` ‚Í 0 ‚Ì‚Æ‚« Baseline RegressionA1 ‚Ì‚Æ‚« Anchor-based RegressionA2 ‚Ì‚Æ‚« ATR-Nets ‚ğÀs‚·‚é
+- à–¾•Ï”‚Ì•ªU `sigma` ‚Í 0.0000001 ˆÈ‰º‚ª‚¨‚·‚·‚ß ($$x_1$$,$$x_2$$ ‚Ì‘å‚«‚³‚ª¬‚³‚¢‚Ì‚Å)
+- –Ú“I•Ï”‚ÌƒNƒ‰ƒX” `nClass` ‚Í 10,20,50‚ª‚¨‚·‚·‚ß
+- à–¾•Ï”‚Ì‰ñ“]” `pNum`‚Í 2‚©3‚©5‚®‚ç‚¢‚ª‚¨‚·‚·‚ß (1‚¾‚Æ•s’è–â‘è‚ª‹N‚±‚ç‚È‚¢A5ˆÈã‚Í•s’è–â‘è‚ª‹N‚±‚è‚·‚¬‚é‚½‚ß)
+- ‰ñ‹ANN‚Ì‘w” `depth`‚Í 3,4,5
+
+<br>
+
+- ƒR[ƒhã‚Ì•Ï”‚ÆƒRƒ}ƒ“ƒhˆø”
 
 ```python:trainingModel.py
 # -------------------------- command arugment ----------------------------------
@@ -71,21 +78,38 @@ depth = int(sys.argv[5])
 
 <a id="ID_1"></a>
 
-## ä½¿ç”¨ã™ã‚‹ã‚‰ã›ã‚“éšæ®µãƒ‡ãƒ¼ã‚¿ : `makingData.py`
-($x_1$,$x_2$,y)ã‹ã‚‰ãªã‚‹ï¼“æ¬¡å…ƒã®ã‚‰ã›ã‚“éšæ®µãƒ‡ãƒ¼ã‚¿ã‚’ä½œæˆã™ã‚‹ã€‚
-$y^n$ã¯ã€0 ~ $Sigma$ ã®ä¸€æ§˜ä¹±æ•°åˆ†å¸ƒ U(0, $\Sigma$) ã«å¾“ã£ã¦ç™ºç”Ÿã•ã›ãŸãƒ‡ãƒ¼ã‚¿ã€‚ä»¥ä¸‹ã€ç›®çš„å¤‰æ•°yã¨èª¬æ˜å¤‰æ•°$x_1$,$x_2$ã®é–¢ä¿‚å¼:<br>
-```math
-y^n &\overset{\mathrm{i.i.d}{\sim}}U(y_\mathrm{min},y_\mathrm{max})
-x_1^n &= sin(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma)
-x_2^n &= cos(m \times y^n) + \frac{1}{\log(y^n)} + \mathcal{N}(0,\Sigma)
-```
+## g—p‚·‚é‚ç‚¹‚ñŠK’iƒf[ƒ^ : `makingData.py`
+(x1,x2,y)‚©‚ç‚È‚é‚RŸŒ³‚Ì‚ç‚¹‚ñŠK’iƒf[ƒ^‚ğì¬‚·‚éB
+y ‚Í 0 ~ Sigma  ‚Ìˆê—l—”•ª•z U(0,Sigma) ‚É]‚Á‚Ä”­¶‚³‚¹‚½ƒf[ƒ^BˆÈ‰ºA–Ú“I•Ï”y‚Æà–¾•Ï” x1,x2 ‚ÌŠÖŒW®:<br>
+
+> ![makedata](/results/makedata.png)
+
+
 <br>
 
 <a id="ID_1-1"></a>
 
-### ã‚³ãƒ¼ãƒ‰ã®èª¬æ˜
+### ƒR[ƒh‚Ìà–¾
 
-- ã¾ãšã€ã‚‰ã›ã‚“éšæ®µãƒ‡ãƒ¼ã‚¿ä½œæˆã‚’è¡Œã†ã€‚ä½œæˆã—ãŸãƒ‡ãƒ¼ã‚¿ã‚’å­¦ç¿’ç”¨ãƒ‡ãƒ¼ã‚¿ã¨ãƒ†ã‚¹ãƒˆç”¨ãƒ‡ãƒ¼ã‚¿ã«åˆ†å‰²ã™ã‚‹ã€‚åˆ†å‰²å‰²åˆã¯ã€`trainRatio`ã§æŒ‡å®šã—ã€å­¦ç¿’ç”¨ãƒ‡ãƒ¼ã‚¿80%ã€ãƒ†ã‚¹ãƒˆç”¨ãƒ‡ãƒ¼ã‚¿20%
+- ‚ç‚¹‚ñŠK’iƒf[ƒ^ì¬‚ğs‚¤Bì¬‚µ‚½ƒf[ƒ^‚ğŠwK—pƒf[ƒ^‚ÆƒeƒXƒg—pƒf[ƒ^‚É•ªŠ„‚·‚éB•ªŠ„Š„‡‚ÍA`trainRatio`‚Åw’è‚µAŠwK—pƒf[ƒ^80%AƒeƒXƒg—pƒf[ƒ^20%
+
+- ‘Sƒf[ƒ^” `nData`AŠwK‚ÆƒeƒXƒg‚Ì•ªŠ„Š„‡ `trainRatio` ‚ğŒˆ‚ß‚é‚ÆAŠwKƒf[ƒ^” `nTrain` ‚ÆƒeƒXƒgƒf[ƒ^” `nTest` ‚ªŒˆ‚Ü‚éB—á‚¦‚ÎA`nData = 8000`‚Ì‚Æ‚«A`trainRatio = 0.8`‚Æ‚·‚é‚ÆAŠwKƒf[ƒ^” 6400, ƒeƒXƒgƒf[ƒ^” 1600‚Æ‚È‚éB
+
+
+```python:makingData.py
+# training rate
+trainRatio = 0.8
+# number of data
+nData = 8000
+# number of train data
+nTrain = int(nData * trainRatio)
+# number of test data
+nTest = int(nData - nTrain)
+# batch random index
+batchRandInd = np.random.permutation(nTrain)
+```
+
+<br>
 
 ```python:makingData.py
 def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
@@ -110,36 +134,36 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
 
 <br>
 
-- å¼•æ•°ã®èª¬æ˜
-	- $x_1$,$x_2$ã®å›è»¢æ•° `pNum` ã¨ x1ã€x2ã®åˆ†æ•£ `noise` ã¯ã€ `trainingModel.py` ã‚’å®Ÿè¡Œã™ã‚‹ã¨ãã«ã‚³ãƒãƒ³ãƒ‰å¼•æ•°ã§æŒ‡å®šã•ã‚ŒãŸã‚‚ã®ãŒæ¸¡ã•ã‚Œã‚‹ã€‚
-	- ç›®çš„å¤‰æ•°ã®ç¯„å›²ã®æœ€å°å€¤ y_\mathrm{min}ã¨æœ€å¤§å€¤ y_\mathrm{max}ã¯ã€2,6ã€‚
+- ˆø”‚Ìà–¾
+	- x1,x2 ‚Ì‰ñ“]” `pNum` ‚Æ x1Ax2‚Ì•ªU `noise` ‚ÍA `trainingModel.py` ‚ğÀs‚·‚é‚Æ‚«‚ÉƒRƒ}ƒ“ƒhˆø”‚Åw’è‚³‚ê‚½‚à‚Ì‚ª“n‚³‚ê‚éB
+	- –Ú“I•Ï”‚Ì”ÍˆÍ‚ÌÅ¬’l `yMin` ‚ÆÅ‘å’l `yMax` ‚ÍA2,6B
 
 
 <br>
 
-- æ¬¡ã«ã€ç›®çš„å¤‰æ•°ã®ãƒ©ãƒ™ãƒ«ä»˜ã‘ã‚’ã™ã‚‹ã€‚<font color="Red">åˆ†é¡ãƒ‹ãƒ¥ãƒ¼ãƒ©ãƒ«ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ã®ã‚ã‚‹ Anchor-based Regression ã¨ ATR-Netsã®æ™‚ã«å¿…è¦ã€‚</font>
+- Ÿ‚ÉA–Ú“I•Ï”‚Ìƒ‰ƒxƒ‹•t‚¯‚ğ‚·‚éB•ª—Şƒjƒ…[ƒ‰ƒ‹ƒlƒbƒgƒ[ƒN‚Ì‚ ‚é Anchor-based Regression ‚Æ ATR-Nets‚Ì‚É•K—vB
+
 
 ```python:makingData.py
 def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
     ...
 
-    # Get only target variables Y ()
-    _,_,_,_,_,_, target = SplitTrainTest()
+    
     
     flag = False
     for nInd in np.arange(target.shape[0]):
         tmpY = target[nInd]
         oneHot = np.zeros(len(yClass))
         ind = 0
-        # (æœ€å°ã€æœ€å¤§]
+        # (Å¬AÅ‘å]
         for threY in yClass:
             if (tmpY > threY) & (tmpY <= threY + beta):
                       oneHot[ind] = 1            
             ind += 1
-        # æœ€å°å€¤ã¯0ç•ªç›®ã®ã‚¯ãƒ©ã‚¹ã«ã™ã‚‹
+        # Å¬’l‚Í0”Ô–Ú‚ÌƒNƒ‰ƒX‚É‚·‚é
         if target[nInd] == yMin:
             oneHot[0] = 1
-        # æœ€å¤§å€¤ãŒä¸€ç•ªæœ€å¾Œã®ã‚¯ãƒ©ã‚¹ã«ãƒ©ãƒ™ãƒ«ã•ã‚Œã‚‹ã®ã‚’æˆ»ã™
+        # Å‘å’l‚ªˆê”ÔÅŒã‚ÌƒNƒ‰ƒX‚Éƒ‰ƒxƒ‹‚³‚ê‚é‚Ì‚ğ–ß‚·
         if target[nInd] == yMax:
             oneHot[-2] = 1
         
@@ -151,7 +175,7 @@ def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
         else:
             Ylabel = np.vstack([Ylabel,tmpY])
             
-    # å€¤ãŒå…¥ã£ã¦ã„ãªã„ã‚¯ãƒ©ã‚¹ã‚’å‰Šé™¤
+    # ’l‚ª“ü‚Á‚Ä‚¢‚È‚¢ƒNƒ‰ƒX‚ğíœ
     if len(yClass) == nClass + 1:
         Ylabel = Ylabel[:,:-1]
     
@@ -163,69 +187,112 @@ def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
 ```
 <br>
 
-- ãƒ‡ãƒ¼ã‚¿ä½œæˆæ™‚ã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®è¨­å®š
-	- ã‚¯ãƒ©ã‚¹æ•° `nClass` ã¯ã€ `trainingModel.py` ã‚’å®Ÿè¡Œã™ã‚‹ã¨ãã«ã‚³ãƒãƒ³ãƒ‰å¼•æ•°ã§æŒ‡å®šã™ã‚‹ã€‚ã‚¯ãƒ©ã‚¹åˆ†å‰²æ•° `beta` ã¯ `trainingModel.py` ã§è¨ˆç®—ã•ã‚ŒãŸã‚‚ã®ãŒæ¸¡ã•ã‚Œã‚‹ã€‚
+- ƒf[ƒ^ì¬‚Ìƒpƒ‰ƒ[ƒ^‚Ìİ’è
+	- ƒNƒ‰ƒX” `nClass` ‚ÍA `trainingModel.py` ‚ğÀs‚·‚é‚Æ‚«‚ÉƒRƒ}ƒ“ƒhˆø”‚Åw’è‚·‚éBƒNƒ‰ƒX•ªŠ„” `beta` ‚Í `trainingModel.py` ‚ÅŒvZ‚³‚ê‚½‚à‚Ì‚ª“n‚³‚ê‚éB
 
 <br>
 
 <a id="ID_1-2"></a>
 
-- ã‚‰ã›ã‚“éšæ®µãƒ‡ãƒ¼ã‚¿ (å…¨ãƒ‡ãƒ¼ã‚¿)
+- ‚ç‚¹‚ñŠK’iƒf[ƒ^ (‘Sƒf[ƒ^)
 ![toydata](/results/toydata.png)
 
 <br>
 
 <a id="ID_1-1"></a>
 
-## å„æ‰‹æ³•ã«ã‚ˆã‚‹äºˆæ¸¬å‡¦ç†: `trainingMdel.py`
-Baseline Regression ã¯ã€å›å¸°ãƒ‹ãƒ¥ãƒ¼ãƒ©ãƒ«ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ (NN)ã§ã‚ã‚Šã€Anchor-based Regression ã¯ã€åˆ†é¡NNã¨å›å¸°NNã‚’çµ„ã¿åˆã‚ã›ãŸã‚‚ã®ã§ã‚ã‚Šã€ATR-Netsã¯åˆ†é¡NNã¨å›å¸°NNã«ã€æ®‹å·®ã‚’æ‹¡å¤§ã™ã‚‹ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ã‚’è¿½åŠ ã—ãŸã‚‚ã®ã§ã‚ã‚‹ã€‚3ã¤ã®æ‰‹æ³•ã‚’ `trainingModel.py` ã«ã¦1ã¤ã«ã¾ã¨ã‚ã¦ã„ã‚‹ã€‚3ã¤åŒæ™‚ã«å®Ÿè¡Œã™ã‚‹ã“ã¨ã¯ã§ããšã€ã‚³ãƒãƒ³ãƒ‰å¼•æ•°ã§`methodModel`ã‚’æŒ‡å®šã•ã‚ŒãŸãƒ¢ãƒ‡ãƒ«ãŒ1ã¤ã ã‘ãŒå®Ÿè¡Œã•ã‚Œã‚‹ã€‚å®Ÿè¡Œæ–¹æ³•ã¯ã‚³ãƒãƒ³ãƒ‰ã‚’å‚ç…§ã€‚ <a id="ID_0-1"></a>
+## Šeè–@‚É‚æ‚é—\‘ªˆ—: `trainingModel.py`
+
+Baseline Regression ‚ÍA‰ñ‹Aƒjƒ…[ƒ‰ƒ‹ƒlƒbƒgƒ[ƒN (NN)‚Å‚ ‚èAAnchor-based Regression ‚ÍA•ª—ŞNN‚Æ‰ñ‹ANN‚ğ‘g‚İ‡‚í‚¹‚½‚à‚Ì‚Å‚ ‚èAATR-Nets‚Í•ª—ŞNN‚Æ‰ñ‹ANN‚ÉAc·‚ğŠg‘å‚·‚éƒlƒbƒgƒ[ƒN‚ğ’Ç‰Á‚µ‚½‚à‚Ì‚Å‚ ‚éB3‚Â‚Ìè–@‚ğ `trainingModel.py` ‚É‚Ä1‚Â‚É‚Ü‚Æ‚ß‚Ä‚¢‚éB3‚Â“¯‚ÉÀs‚·‚é‚±‚Æ‚Í‚Å‚«‚¸AƒRƒ}ƒ“ƒhˆø”‚Å`methodModel`‚ğw’è‚³‚ê‚½ƒ‚ƒfƒ‹‚ª1‚Â‚¾‚¯‚ªÀs‚³‚ê‚éBÀs•û–@‚ÍƒRƒ}ƒ“ƒh‚ğQÆB <a id="ID_0-1"></a>
+
+
+- Anchor-based‚Ìƒ‚ƒfƒ‹}
+
+![anchor-based](/results/anchor-based.png)
+
+<br>
+
+- ATR-Nets‚Ìƒ‚ƒfƒ‹}
+
+![atr-nets](/results/atr-nets.png)
+
 
 <br>
 
 <a id="ID_2-1-1"></a>
 
-### ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
+### ƒpƒ‰ƒ[ƒ^
+
+- •ª—ŞNN‚Æ‰ñ‹ANN‚ÌŠeíƒm[ƒh‚ÌŸŒ³”
+
 
 ```python:trainingModel.py
-# --------------------------- parameters --------------------------------------
-# Number of node dimention in Classification
-nInput = xTrain.shape[0]
-dInput = xTest.shape[1]
-nHidden = 128 # node of 1 hidden
-nHidden2 = 128 # node of 2 hidden 
-# round decimal 
-limitdecimal = 3
-# Width class
-beta = np.round((yMax - yMin) / nClass,limitdecimal)
-# Center variable of the first class
-first_cls_center = np.round(yMin + (beta / 2),limitdecimal)
+dInput = 2
+# node of 1 hidden
+nHidden = 128
+# node of 2 hidden
+nHidden2 = 128
 
-# Number of node dimention in Regression ##
+# node of output in Regression 
 nRegOutput = 1
+# node of input in Regression
 if methodModel == 0:
     nRegInput = dInput
 else:
     nRegInput = nRegOutput + dInput
-nRegHidden = 128 # node of 1 hidden
-nRegHidden2 = 128 # node of 2 hidden
-nRegHidden3 = 128 # node of 3 hidden
-nRegHidden4 = 128 # node of 4 hidden
-nRegOutput = 1
+# node of 1 hidden
+nRegHidden = 128
+# node of 2 hidden
+nRegHidden2 = 128
+# node of 3 hidden
+nRegHidden3 = 128
+# node of 4 hidden
+nRegHidden4 = 128
+```
 
+- –Ú“I•Ï”‚Ì”ÍˆÍ U(yMin,yMax)‚ÆƒNƒ‰ƒX•ªŠ„” `beta` ‚Æ@‰‚ß‚ÌƒNƒ‰ƒX‚Ì’†S’l `first_cls_center`
+
+```python:trainingModel.py
+# round decimal 
+limitdecimal = 3
+# maximum of target variables
+yMax = 6
+# miinimum of target variables
+yMin = 2
+# Width class
+beta = np.round((yMax - yMin) / nClass,limitdecimal)
+# Center variable of the first class
+first_cls_center = np.round(yMin + (beta / 2),limitdecimal)
+```
+
+- ŠwK—¦ `lr` ‚Æƒoƒbƒ`ƒTƒCƒY `batchSize` ‚Æƒoƒbƒ`‚Ì‰Šú‰» `batchCnt` (makingData.py—p)
+- ATR-Nets‚Ì `methodModel == 2` ‚Í `isATR = True`@‚»‚êˆÈŠO‚ÍA`isATR = False`
+
+
+```python:trainingModel.py
 # Learning rate
 lr = 1e-4
 # number of training
-nTraining = 300000
+nTraining = 500
+# batch size
+batchSize = 100
+# batch count initializer
+batchCnt = 0
 # test count
 testPeriod = 500
 # if plot == True
 isPlot = True
-# -----------------------------------------------------------------------------
+
+if methodModel == 2:
+    isATR = True
+else:
+    isATR = False
+
 ```
 
 <br>
 
-- `makingData.py`ã‹ã‚‰èª¬æ˜å¤‰æ•°ã¨ç›®çš„å¤‰æ•°(å­¦ç¿’ã¨ãƒ†ã‚¹ãƒˆã®ä¸¡æ–¹)ã¨ã‚’å—ã‘å–ã‚Šã€èª¬æ˜å¤‰æ•°ã® x ã¯ $x_1$,$x_2$ ã‚’ concat ã—ã¦2æ¬¡å…ƒã®ãƒ‡ãƒ¼ã‚¿ã«ã™ã‚‹ã€‚
+- `makingData.py`‚©‚çà–¾•Ï”‚Æ–Ú“I•Ï”(ŠwK‚ÆƒeƒXƒg‚Ì—¼•û)‚Æ‚ğó‚¯æ‚èAà–¾•Ï”‚Ì x ‚Í $$x_1$$,$$x_2$$ ‚ğ concat ‚µ‚Ä2ŸŒ³‚Ìƒf[ƒ^‚É‚·‚éB
 
 ```python:trainingData.py
 # --------------------------- data --------------------------------------------
@@ -241,7 +308,7 @@ xTest = np.concatenate([x1Test,x2Test], 1)
 
 <br>
 
-- é‡ã¿(`weight_variable`)ã¨ãƒã‚¤ã‚¢ã‚¹(`bias_variable`)ã€sigmoidé–¢æ•°ã®alphaå¤‰æ•°(`alpha_variable`)ã‚’å®šç¾©ã™ã‚‹ã€‚`alpha` ã®åˆæœŸå€¤ `alphaInit` ã¯å¹³å‡ `mean` ã¨åˆ†æ•£ `stddev` ã‚’æŒ‡å®šã™ã‚‹å¿…è¦ã‚ã‚Šã€‚
+- d‚İ(`weight_variable`)‚ÆƒoƒCƒAƒX(`bias_variable`)AsigmoidŠÖ”‚Ìalpha•Ï”(`alpha_variable`)‚ğ’è‹`‚·‚éB`alpha` ‚Ì‰Šú’l `alphaInit` ‚Í•½‹Ï `mean` ‚Æ•ªU `stddev` ‚ğw’è‚·‚é•K—v‚ ‚èB
 
 ```python:trainingModel.py
 #-----------------------------------------------------------------------------#      
@@ -259,15 +326,15 @@ def alpha_variable(name,shape):
 
 <br>
 
-- å¼•æ•°
-	- name: å¤‰æ•°ã®åå‰ã€ä¾‹ãˆã° w_1,b_1,alpha
-	- shape: å¤‰æ•°ã®å½¢ã€ä¾‹ãˆã° [128,128],[128],[1]
+- ˆø”
+	- name: •Ï”‚Ì–¼‘OA—á‚¦‚Î w_1,b_1,alpha
+	- shape: •Ï”‚ÌŒ`A—á‚¦‚Î [128,128],[128],[1]
 
 <br>
 
-- æ´»æ€§åŒ–é–¢æ•°ã¨å…¨çµåˆã‚’å®šç¾©ã™ã‚‹ã€‚å…¨çµåˆ + sigmoid `fc_sigmoid`ã€å…¨çµåˆ + relu `fc_relu`ã€å…¨çµåˆã®ã¿ `fc`ã‚’å®šç¾©ã€‚
-- å…¥åŠ›ã¯ã€å…¥åŠ› inputsã€é‡ã¿ wã€ãƒã‚¤ã‚¢ã‚¹ bã€ãƒ‰ãƒ­ãƒƒãƒ—ã‚¢ã‚¦ãƒˆæ•° keepProb ã‚’æŒ‡å®šã€‚
-- keepProbã¯ãƒ‰ãƒ­ãƒƒãƒ—ã‚¢ã‚¦ãƒˆã™ã‚‹ãƒãƒ¼ãƒ‰æ•°ã‚’æŒ‡å®šã§ãã‚‹ã€‚ä¾‹ãˆã°ã€0.5ã®å ´åˆã¯åŠåˆ†ã®ãƒãƒ¼ãƒ‰ã—ã‹ä½¿ç”¨ã•ã‚Œãªã„ã€‚ãŸã ã—ã€ãƒ†ã‚¹ãƒˆæ™‚ã¯1.0ã«ã—ãªã‘ã‚Œã°ãªã‚‰ãªã„ã€‚
+- Šˆ«‰»ŠÖ”‚Æ‘SŒ‹‡‚ğ’è‹`‚·‚éB‘SŒ‹‡ + sigmoid `fc_sigmoid`A‘SŒ‹‡ + relu `fc_relu`A‘SŒ‹‡‚Ì‚İ `fc`‚ğ’è‹`B
+- “ü—Í‚ÍA“ü—Í inputsAd‚İ wAƒoƒCƒAƒX bAƒhƒƒbƒvƒAƒEƒg” keepProb ‚ğw’èB
+- keepProb‚ÍƒhƒƒbƒvƒAƒEƒg‚·‚éƒm[ƒh”‚ğw’è‚Å‚«‚éB—á‚¦‚ÎA0.5 ‚Ìê‡‚Í”¼•ª‚Ìƒm[ƒh‚µ‚©g—p‚³‚ê‚È‚¢B‚½‚¾‚µAƒeƒXƒg‚Í1.0‚É‚µ‚È‚¯‚ê‚Î‚È‚ç‚È‚¢B
 
 
 ```python:trainingModel.py
@@ -296,11 +363,13 @@ def fc(inputs,w,b,keepProb):
 
 <a id="ID_2-1-2"></a>
 
-### åˆ†é¡NNã¨å›å¸°NN
+### •ª—ŞNN‚Æ‰ñ‹ANN
 
-- {å…¥åŠ›å±¤: 2ãƒãƒ¼ãƒ‰ã€éš ã‚Œå±¤1: 128ãƒãƒ¼ãƒ‰ã€éš ã‚Œå±¤2: 128ãƒãƒ¼ãƒ‰ã€å‡ºåŠ›å±¤: 1ãƒãƒ¼ãƒ‰} ã®åˆ†é¡NN (`Classify`) ã¯ã€Anchor-based Regressionã¨ATR-Netsã§ä½¿ç”¨ã€‚
--å…¥åŠ› x ã¯2æ¬¡å…ƒè¡Œåˆ—ã§ã€å‡ºåŠ› y ã¯ã‚¯ãƒ©ã‚¹æ•°åˆ†ã®1æ¬¡å…ƒãƒ™ã‚¯ãƒˆãƒ« (0 ~ 1ã®ã‚¯ãƒ©ã‚¹ç¢ºç‡ã«å¯¾å¿œ)ã€‚
--å„ç¨®ãƒãƒ¼ãƒ‰æ•°ã¯ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®é …ç›®ã‚’å‚ç…§ã€€<a id="ID_0-1"></a>
+- •ª—ŞNN
+
+	- {“ü—Í‘w: 2ƒm[ƒhA‰B‚ê‘w1: 128ƒm[ƒhA‰B‚ê‘w2: 128ƒm[ƒhAo—Í‘w: 1ƒm[ƒh} ‚Ì•ª—ŞNN (`Classify`) ‚ÍAAnchor-based Regression‚ÆATR-Nets‚Åg—pB
+	- “ü—Í x ‚Í2ŸŒ³s—ñ‚ÅAo—Í y ‚ÍƒNƒ‰ƒX”•ª‚Ì1ŸŒ³ƒxƒNƒgƒ‹ (0 ~ 1‚ÌƒNƒ‰ƒXŠm—¦‚É‘Î‰)B
+	- Šeíƒm[ƒh”‚Íƒpƒ‰ƒ[ƒ^‚Ì€–Ú‚ğQÆ@
 
 
 
@@ -332,20 +401,27 @@ def Classify(x,reuse=False):
         return y
 
 ```
-- å¼•æ•°
-	- ãƒ†ã‚¹ãƒˆæ™‚ã¯ reuse=True ã«ã—ã¦ã€é‡ã¿ã¨ãƒã‚¤ã‚¢ã‚¹ã‚’å…±æœ‰ã™ã‚‹ã€‚	
+- ˆø”
+	- ƒeƒXƒg‚Í reuse=True ‚É‚µ‚ÄAd‚İ‚ÆƒoƒCƒAƒX‚ğ‹¤—L‚·‚éB	
 
 <br>
 
-- å›å¸°NN (`Regress`) ã¯ã™ã¹ã¦ã®æ‰‹æ³•ã§ç”¨ã„ã‚‹ã€‚<font color="Red">ãŸã ã—ã€ATR-Netsã®æ™‚ã ã‘å‡ºåŠ›å±¤ã®æ´»æ€§åŒ–é–¢æ•°ã‚’sigmoidã«æŒ‡å®š(expã‚’å–ã‚‹ã¨ãã«ãƒã‚¤ãƒŠã‚¹å€¤ã¯è¨ˆç®—ã§ããªã„ã‹ã‚‰)ã€‚
--å…¥åŠ› x ã¯ã€Baseline Regressionã®æ™‚ã¯2æ¬¡å…ƒè¡Œåˆ—ã®èª¬æ˜å¤‰æ•°ã§ã€Anchor-based regressionã¨ATR-Netsã®æ™‚ã¯2æ¬¡å…ƒè¡Œåˆ—ã®èª¬æ˜å¤‰æ•°ã¨1æ¬¡å…ƒã®ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ã¨ã‚’concatã—ãŸ3æ¬¡å…ƒè¡Œåˆ—ã§ã‚ã‚‹ã€‚å‡ºåŠ›ã¯ y ã¯ã€Baseline Regression ã®æ™‚ã¯1æ¬¡å…ƒãƒ™ã‚¯ãƒˆãƒ«ã®ç›®çš„å¤‰æ•°ã®äºˆæ¸¬å€¤ã§ã€Anchor-based regressionã¨ATR-Netsã®æ™‚ã¯1æ¬¡å…ƒãƒ™ã‚¯ãƒˆãƒ«ã®æ®‹å·®(=çœŸå€¤ã¨ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤)ã§ã‚ã‚‹ã€‚
--å„ç¨®ãƒãƒ¼ãƒ‰æ•°ã¯ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®é …ç›®ã‚’å‚ç…§ã€€<a id="ID_0-1"></a>
+- ‰ñ‹ANN
+	- ‰ñ‹ANN (`Regress`) ‚Í‚·‚×‚Ä‚Ìè–@‚Å—p‚¢‚éB<font color="Red">‚½‚¾‚µAATR-Nets‚Ì‚¾‚¯o—Í‘w‚ÌŠˆ«‰»ŠÖ”‚ğsigmoid‚Éw’è(exp‚ğæ‚é‚Æ‚«‚Éƒ}ƒCƒiƒX’l‚ÍŒvZ‚Å‚«‚È‚¢‚©‚ç)B
+
+	- {“ü—Í‘w: 2ƒm[ƒh or 3ƒm[ƒhA‰B‚ê‘w1: 128ƒm[ƒhA‰B‚ê‘w2: 128ƒm[ƒhAo—Í‘w: 1ƒm[ƒh} ‚Ì‰ñ‹ANN (`Regress`)
+
+	- “ü—Í `x_reg` ‚ÍABaseline Regression‚Ì‚Í2ŸŒ³s—ñ‚Ìà–¾•Ï”‚ÅAAnchor-based regression‚ÆATR-Nets‚Ì‚Í2ŸŒ³s—ñ‚Ìà–¾•Ï”‚Æ1ŸŒ³‚ÌƒNƒ‰ƒX‚Ì’†S’l‚Æ‚ğconcat‚µ‚½3ŸŒ³s—ñ‚Å‚ ‚éB
+
+	- o—Í‚ÍABaseline Regression ‚Ì‚Í1ŸŒ³ƒxƒNƒgƒ‹‚Ì–Ú“I•Ï”‚Ì—\‘ª’l‚ÅAAnchor-based regression‚ÆATR-Nets‚Ì‚Í1ŸŒ³ƒxƒNƒgƒ‹‚Ìc·(=^’l‚ÆƒNƒ‰ƒX‚Ì’†S’l)‚Å‚ ‚éB
+
+	- Šeíƒm[ƒh”‚Íƒpƒ‰ƒ[ƒ^‚Ì€–Ú‚ğQÆ@
 
 
 ```python:trainingModel.py
-def Regress(x_reg,reuse=False,isR=False,depth=0):
+def Regress(x_reg,reuse=False,isATR=False,depth=0):
     ...
-    with tf.variable_scope("Regress") as scope:  
+     with tf.variable_scope("Regress") as scope:  
         keepProb = 1.0
         if reuse:
             keepProb = 1.0            
@@ -361,11 +437,11 @@ def Regress(x_reg,reuse=False,isR=False,depth=0):
             w2_reg = weight_variable('w2_reg',[nRegHidden,nRegOutput])
             bias2_reg = bias_variable('bias2_reg',[nRegOutput])
             
-            if isR:
+            if isATR:
                 # shape=[None,number of dimention (y)]
-                return fc(h1,w2_reg,bias2_reg,keepProb)
-            else:
                 return fc_sigmoid(h1,w2_reg,bias2_reg,keepProb)
+            else:
+                return fc(h1,w2_reg,bias2_reg,keepProb)
         # ---------------------------------------------------------------------
         elif depth == 4:
             # 2nd layer
@@ -377,10 +453,10 @@ def Regress(x_reg,reuse=False,isR=False,depth=0):
             w3_reg = weight_variable('w3_reg',[nRegHidden2,nRegOutput])
             bias3_reg = bias_variable('bias3_reg',[nRegOutput])
             
-            if isR:
-                return fc(h2,w3_reg,bias3_reg,keepProb)
-            else:
+            if isATR:
                 return fc_sigmoid(h2,w3_reg,bias3_reg,keepProb)
+            else:
+                return fc(h2,w3_reg,bias3_reg,keepProb)
         # ---------------------------------------------------------------------
         elif depth == 5:
             # 2nd layer
@@ -397,18 +473,17 @@ def Regress(x_reg,reuse=False,isR=False,depth=0):
             w4_reg = weight_variable('w4_reg',[nRegHidden3,nRegOutput])
             bias4_reg = bias_variable('bias4_reg',[nRegOutput])
             
-            if isR:
-                return fc(h3,w4_reg,bias4_reg,keepProb) 
+            if isATR:
+                return fc_sigmoid(h3,w4_reg,bias4_reg,keepProb)
             else:
-                return fc_sigmoid(h3,w4_reg,bias4_reg,keepProb) 
-#-----------------------------------------------------------------------------#
+                return fc(h3,w4_reg,bias4_reg,keepProb)
 ```
 <br>
 
-- å¼•æ•°
-	- isR: ATR-Netsã®æ™‚ã¯ Trueã€ãã®ä»–ã®æ‰‹æ³•ã¯ False
-	- depth: éšå±¤ã‚’æŒ‡å®šã€€ä¾‹ãˆã° depth=3 ã®ã¨ãã¯ 3 éšå±¤ãƒ¢ãƒ‡ãƒ« ç¾åœ¨ã¯ 3,4,5 éšå±¤ãƒ¢ãƒ‡ãƒ«ã«å¯¾å¿œ
-	- ãƒ†ã‚¹ãƒˆæ™‚ã¯ reuse=True ã«ã—ã¦ã€é‡ã¿ã¨ãƒã‚¤ã‚¢ã‚¹ã‚’å…±æœ‰ã™ã‚‹ã€‚
+- ˆø”
+	- isATR: ATR-Nets‚Ì‚Í TrueA‚»‚Ì‘¼‚Ìè–@‚Í False
+	- depth: ŠK‘w‚ğw’è@—á‚¦‚Î depth=3 ‚Ì‚Æ‚«‚Í 3 ŠK‘wƒ‚ƒfƒ‹ Œ»İ‚Í 3,4,5 ŠK‘wƒ‚ƒfƒ‹‚É‘Î‰
+	- ƒeƒXƒg‚Í reuse=True ‚É‚µ‚ÄAd‚İ‚ÆƒoƒCƒAƒX‚ğ‹¤—L‚·‚éB
 
 <br>
 
@@ -417,15 +492,15 @@ def Regress(x_reg,reuse=False,isR=False,depth=0):
 <a id="ID_2-1-3"></a>
 
 
-### Anchor-based regressionã¨ATR-Netsã®å›å¸°NNã§ä½¿ç”¨ã™ã‚‹å…¥åŠ›ã¨å‡ºåŠ›ã®ä½œæˆ
+### Anchor-based regression‚ÆATR-Nets‚Ì‰ñ‹ANN‚Åg—p‚·‚é“ü—Í‚Æo—Í‚Ìì¬
 
-- å›å¸°NNã®å…¥åŠ›
-	- ã‚¯ãƒ©ã‚¹ç¢ºç‡ã®ãƒ™ã‚¯ãƒˆãƒ«ã®æœ€å¤§ç¢ºç‡ã®ã‚¯ãƒ©ã‚¹ `pred_maxcls` ã‹ã‚‰ã€ãã®ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `pred_cls_center` ã‚’å–å¾—ã€‚èª¬æ˜å¤‰æ•°ã¨concatã™ã‚‹ã€‚
-- å›å¸°NNã®å‡ºåŠ›ã®çœŸå€¤
-	- æ®‹å·® (ç›®çš„å¤‰æ•° - ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `pred_cls_center` )
+- ‰ñ‹ANN‚Ì“ü—Í
+	- ƒNƒ‰ƒXŠm—¦‚ÌƒxƒNƒgƒ‹‚ÌÅ‘åŠm—¦‚ÌƒNƒ‰ƒX `pred_maxcls` ‚©‚çA‚»‚ÌƒNƒ‰ƒX‚Ì’†S’l `pred_cls_center` ‚ğæ“¾Bà–¾•Ï”‚Æconcat‚·‚éB
+- ‰ñ‹ANN‚Ìo—Í‚Ì^’l
+	- c· (–Ú“I•Ï” - ƒNƒ‰ƒX‚Ì’†S’l `pred_cls_center` )
 
 ```python:trainingModel.py
-def CreateRegInputOutput(x,cls_score):
+def CreateRegInputOutput(x,y,cls_score):
     ...
     
     # Max class of predicted class
@@ -441,20 +516,22 @@ def CreateRegInputOutput(x,cls_score):
 #-----------------------------------------------------------------------------#
 ```
 
-- å¼•æ•°
-	- x: èª¬æ˜å¤‰æ•°
-	- cls_score: ã‚¯ãƒ©ã‚¹ç¢ºç‡ (`Classify` ã®å‡ºåŠ›)
+- ˆø”
+	- x: à–¾•Ï” x = x1 + x2
+	- y: –Ú“I•Ï”
+	- cls_score: ƒNƒ‰ƒXŠm—¦ (`Classify` ‚Ìo—Í)
 
 
 <br>
 
 <a id="ID_2-1-4"></a>
 
-### ATR-Netsã®å·¥å¤«ç‚¹
+### ATR-Nets‚ÌH•v“_
 
-- æ®‹å·®ã®ç¯„å›²ã‚’_sigmoidé–¢æ•°_ã‚’ç”¨ã„ã¦ã€[0,1] ã«ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰ã™ã‚‹
-- sigmoidé–¢æ•°ã®å‚¾ã `alpha` ã¯å­¦ç¿’ã—ã¦æœ€é©åŒ–ã™ã‚‹
-- æ®‹å·®ã¨ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰ã•ã‚ŒãŸæ®‹å·®ã¨ã®é–¢ä¿‚å¼ï¼š $\textbf{r_at}= \frac{1}{1 + exp{-\alpha \textbf{r}}}$
+- c·‚Ì”ÍˆÍ‚ğ_sigmoidŠÖ”_‚ğ—p‚¢‚ÄA[0,1] ‚ÉƒGƒ“ƒR[ƒh‚·‚é
+- sigmoidŠÖ”‚ÌŒX‚« `alpha` ‚ÍŠwK‚µ‚ÄÅ“K‰»‚·‚é
+- c·‚ÆƒGƒ“ƒR[ƒh‚³‚ê‚½c·‚Æ‚ÌŠÖŒW®F <bf>
+> ![rat](/results/rat.png)
 
 
 ```python:trainingModel.py
@@ -473,20 +550,19 @@ def TruncatedResidual(r,reuse=False):
 ```
 
 
-
-- å¼•æ•°
-	- r: çœŸã®æ®‹å·®
+- ˆø”
+	- r: ^‚Ìc·
 
 <br>
 
-- æ®‹å·®ã¨ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰ã•ã‚ŒãŸæ®‹å·®ã®é–¢ä¿‚å›³ 
+- c·‚ÆƒGƒ“ƒR[ƒh‚³‚ê‚½c·‚ÌŠÖŒW} 
 ![atr](/results/atr.png)
 
 <br>
 
-- ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰ã•ã‚ŒãŸæ®‹å·®ã‚’ã‚‚ã¨ã®ç¯„å›²ã®æ®‹å·®ã«æˆ»ã™ 
-- å¼ï¼š $\textbf{r} = \frac{-1}{\alpha}\log{\frac{1}{\textbf{r_at}} - 1 }$ (æ®‹å·®ã¨ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰ã•ã‚ŒãŸæ®‹å·®ã®é–¢ä¿‚å¼ã¨é€†)
-
+- ƒGƒ“ƒR[ƒh‚³‚ê‚½c·‚ğ‚à‚Æ‚Ì”ÍˆÍ‚Ìc·‚É–ß‚· 
+- ®F<bf>
+> ![r](/results/r.png)
 
 ```python:trainingModel.py
 def Reduce(r_at,alpha,reuse=False):
@@ -502,26 +578,27 @@ def Reduce(r_at,alpha,reuse=False):
 
 ```
 
-- å¼•æ•°
-	- r_at: ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰ã•ã‚ŒãŸæ®‹å·®
-	- alpha: sigmoidé–¢æ•°ã®å‚¾ã
+- ˆø”
+	- r_at: ƒGƒ“ƒR[ƒh‚³‚ê‚½c·
+	- alpha: sigmoidŠÖ”‚ÌŒX‚«
 
 <br>
 
-<a id="ID_2-1-4"></a>
+<a id="ID_2-1-5"></a>
 
-### æå¤±é–¢æ•°ãƒ»æœ€é©åŒ–
+### ‘¹¸ŠÖ”EÅ“K‰»
 
-- åˆ†é¡NNã¯ã‚¯ãƒ­ã‚¹ã‚¨ãƒ³ãƒˆãƒ­ãƒ”ãƒ¼èª¤å·®ã§ã€å›å¸°NNã¨alphaã‚’å­¦ç¿’ã™ã‚‹ã¨ãã¯çµ¶å¯¾å¹³å‡èª¤å·®
-- 1ã¤ã®å­¦ç¿’å™¨ã‚’å­¦ç¿’ã™ã‚‹ã¨ãã¯ä»–ã®å­¦ç¿’å™¨ã‚’ frozenã™ã‚‹ã€‚ãã®ãŸã‚ã€name_scopeã§å­¦ç¿’ã™ã‚‹å­¦ç¿’å™¨ã‚’æŒ‡å®šã™ã‚‹å¿…è¦ã‚ã‚Šã€‚ä¾‹ãˆã°ã€åˆ†é¡NNã‚’å­¦ç¿’ã™ã‚‹ã¨ãã¯ã€ä»–ã®å›å¸°NNå­¦ç¿’å™¨ã¨alphaå­¦ç¿’å™¨ã‚’å­¦ç¿’ã—ãªã„ (`name_scope="Regress"` ã‚’æŒ‡å®š)
+- •ª—ŞNN‚ÍƒNƒƒXƒGƒ“ƒgƒƒs[Œë·‚ÅA‰ñ‹ANN‚Æalpha‚ğŠwK‚·‚é‚Æ‚«‚Íâ‘Î•½‹ÏŒë·
+- _1‚Â‚ÌŠwKŠí‚ğŠwK‚·‚é‚Æ‚«‚Í‘¼‚ÌŠwKŠí‚ğ frozen‚·‚éB‚»‚Ì‚½‚ßAname_scope‚ÅŠwK‚·‚éŠwKŠí‚ğw’è‚·‚é•K—v‚ ‚èB—á‚¦‚ÎA•ª—ŞNN‚ğŠwK‚·‚é‚Æ‚«‚ÍA‘¼‚Ì‰ñ‹ANNŠwKŠí‚ÆalphaŠwKŠí‚ğŠwK‚µ‚È‚¢ (`name_scope="Regress"` ‚ğw’è)_
+
 
 ```python:trainingModel.py
-def Loss(y,predict,isR=False):
+def Loss(y,predict,isCE=False):
     ...
-    if isR:
-        return tf.reduce_mean(tf.abs(y - predict))
-    else:
+    if isCE:
         return tf.losses.softmax_cross_entropy(y,predict)
+    else:
+        return tf.reduce_mean(tf.abs(y - predict))
 #-----------------------------------------------------------------------------#
 def Optimizer(loss,name_scope="Regress"):
     ...
@@ -531,25 +608,25 @@ def Optimizer(loss,name_scope="Regress"):
 
 ```
 
-- å¼•æ•°
-	- isR: å›å¸°NNã¨alphaå­¦ç¿’ã™ã‚‹æ™‚ã¯ Trueã€åˆ†é¡NNã®æ™‚ã¯ False
-	- name_scope: å›å¸°NNã®æ™‚ã¯ Regressã€åˆ†é¡NNã®æ™‚ã¯ Classifyã€alphaå­¦ç¿’ã™ã‚‹ã¨ãã¯ TrResidual ã‚’æŒ‡å®šã€€
+- ˆø”
+	- isCE: ‰ñ‹ANN‚ÆalphaŠwK‚·‚é‚Í FalseA•ª—ŞNN‚Ì‚Í True (default)
+	- name_scope: ‰ñ‹ANN‚Ì‚Í Regress (default)A•ª—ŞNN‚Ì‚Í ClassifyAalphaŠwK‚·‚é‚Æ‚«‚Í TrResidual ‚ğw’è@
 
 <br>
 
 
-<a id="ID_2-1-5"></a>
+<a id="ID_2-1-6"></a>
 
-### é–¢æ•°ã®å‘¼ã³å‡ºã—
+### ŠÖ”‚ÌŒÄ‚Ño‚µ
 
-- åˆ†é¡NN
+- •ª—ŞNN
 
 ```python:trainingModel.py
     cls_op = Classify(x_cls)
     cls_op_test = Classify(x_cls,reuse=True)
 ```
 
-- Anchor-based regressionã¨ATR-Netsã®å›å¸°NNã§ã¯ã€èª¬æ˜å¤‰æ•° x ã¨ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `pred_cls_center` ã‚’ concatã—ãŸ`reg_in` ã‚’å…¥åŠ›ã¨ã—ã€æ®‹å·® (ç›®çš„å¤‰æ•° - ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ ) `res` ã‚’å‡ºåŠ›ã®çœŸå€¤ã«ã™ã‚‹ã€‚
+- Anchor-based regression‚ÆATR-Nets‚Ì‰ñ‹ANN‚Å‚ÍAà–¾•Ï” x ‚ÆƒNƒ‰ƒX‚Ì’†S’l `pred_cls_center` ‚ğ concat‚µ‚½`reg_in` ‚ğ“ü—Í‚Æ‚µAc· (–Ú“I•Ï” - ƒNƒ‰ƒX‚Ì’†S’l ) `res` ‚ğo—Í‚Ì^’l‚É‚·‚éB
 
 
 ```python:trainingModel.py
@@ -557,22 +634,18 @@ def Optimizer(loss,name_scope="Regress"):
     pred_cls_center_test, res_test, reg_in_test = CreateRegInputOutput(x_cls,cls_op_test)
 ```
 
-- å›å¸°NN
-	- Baseline regression ã®å…¥åŠ›ã¯èª¬æ˜å¤‰æ•° `x_reg`ã€Anchor-based regressionã¨ATR-Netsã®å…¥åŠ›ã¯èª¬æ˜å¤‰æ•° x ã¨ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `reg_in`
-	- Baseline regressionã¨Anchor-based regressionã®æ™‚ `is_atr`ã¯ Falseã€ATR-Netsã®æ™‚ True (å‡ºåŠ›å±¤ã®æ´»æ€§åŒ–é–¢æ•°ã‚’sigmoidã«ã™ã‚‹ãŸã‚)
+- ‰ñ‹ANN
+	- Baseline regression ‚Ì“ü—Í‚Íà–¾•Ï” `x_reg`AAnchor-based regression‚ÆATR-Nets‚Ì“ü—Í‚Íà–¾•Ï” x ‚ÆƒNƒ‰ƒX‚Ì’†S’l `reg_in`‚·‚é (sess.run‚Å)
+	- Baseline regression‚ÆAnchor-based regression‚Ì `isATR`‚Í FalseAATR-Nets‚Ì True (o—Í‘w‚ÌŠˆ«‰»ŠÖ”‚ğsigmoid‚É‚·‚é‚½‚ß)
 
 ```python:trainingModel.py
-# Baseline regression
-reg_op = Regress(x_reg,isATR=is_atr,depth=depth)
-reg_op_test = Regress(x_reg,reuse=True,isATR=is_atr,depth=depth)
+reg_op = Regress(x_reg,isATR=isATR,depth=depth)
+reg_op_test = Regress(x_reg,reuse=True,isATR=isATR,depth=depth)
     
-# Anchor-based regression & ATR-Nets
-res_op = Regress(reg_in,isATR=is_atr,depth=depth)
-res_op_test = Regress(reg_in_test,reuse=True,isATR=is_atr,depth=depth)
 ```    
 
 - Adaptive Truncated residual 
-- å…¥åŠ›ã¯çœŸã®æ®‹å·® `res`ã€å‡ºåŠ›ã¯çœŸã®æ‹¡å¤§ã•ã‚ŒãŸæ®‹å·® `res_atr` ã¨sigmoidé–¢æ•°ã®å‚¾ã `alpha_op`
+- “ü—Í‚Í^‚Ìc· `res`Ao—Í‚Í^‚ÌŠg‘å‚³‚ê‚½c· `res_atr` ‚ÆsigmoidŠÖ”‚ÌŒX‚« `alpha_op`
 
 
 ```python:trainingModel.py
@@ -580,15 +653,16 @@ res_atr, alpha_op = TruncatedResidual(res)
 res_atr_test, alpha_op_test = TruncatedResidual(res_test,reuse=True)
 ```
 - Reduce residual
-- å…¥åŠ›ã¯äºˆæ¸¬ã—ãŸæ‹¡å¤§æ®‹å·® `res_op`ã¨sigmoidé–¢æ•°ã®å‚¾ã `alpha_op`ã€å‡ºåŠ›ã¯å…ƒã«æˆ»ã—ãŸæ®‹å·® `reduce_res`  
+- “ü—Í‚Í—\‘ª‚µ‚½Šg‘åc· `res_op`‚ÆsigmoidŠÖ”‚ÌŒX‚« `alpha_op`Ao—Í‚ÍŒ³‚É–ß‚µ‚½c· `reduce_res`
+- TruncatedResidual()“à‚Å’è‹`‚³‚ê‚½alpha‚ğg—p‚·‚é‚Ì‚ÅAŠwKEƒeƒXƒg—¼•û‚Æ‚à `reuse=True`
 
 ```python:trainingModel.py
-reduce_res = Reduce(res_op,alpha_op)
-reduce_res_test = Reduce(res_op_test,alpha_op_test,reuse=True)
+reduce_res = Reduce(reg_op,alpha_op,reuse=True)
+reduce_res_test = Reduce(reg_op_test,alpha_op_test,reuse=True)
 ```
 <br>
 
-- äºˆæ¸¬ã—ãŸç›®çš„å¤‰æ•° `pred_y` = ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `pred_cls_center` + å…ƒã«æˆ»ã—ãŸæ®‹å·® `reduce_res_op`
+- —\‘ª‚µ‚½–Ú“I•Ï” `pred_y` = ƒNƒ‰ƒX‚Ì’†S’l `pred_cls_center` + Œ³‚É–ß‚µ‚½c· `reduce_res_op`
 
 
 ```python:trainingModel.py
@@ -598,41 +672,42 @@ pred_y_test = pred_cls_center_test + reduce_res_op_test
 ```
 <br>
 
-- èª¤å·®é–¢æ•°
-- Baseline Regressionã¯ `loss_reg`ã€Anchor-based regressionã¯ `loss_cls`ã¨`loss_anc`ã€ATR-Netsã¯`loss_cls`ã¨`loss_atr`ã¨`loss_alpha`
-- `loss_cls`ä»¥å¤–ã¯`is_reg`ã‚’TrueæŒ‡å®š
-- `loss_cls`ã®æ™‚ã€€ã‚¯ãƒ©ã‚¹ã®ãƒ©ãƒ™ãƒ«
+- Œë·ŠÖ”
+	- Baseline Regression‚Í `loss_reg`AAnchor-based regression‚Í `loss_cls`‚Æ`loss_anc`AATR-Nets‚Í`loss_cls`‚Æ`loss_atr`‚Æ`loss_alpha`
+	- `loss_cls`‚Í `isCE=True`
+	- `loss_cls`‚ÍƒNƒ‰ƒX‚Ìƒ‰ƒxƒ‹A `loss_reg`‚Í–Ú“I•Ï”A`loss_anc`‚Íc·A`loss_atr`‚ÍƒGƒ“ƒR[ƒh‚³‚ê‚½c·‚ª^’l‚Å‚ ‚éB`loss_cls`‚Í•ª—ŞNN‚Ìo—Í `cls_op`‚Å`loss_reg`A`loss_anc`A`loss_atr`‚Í‰ñ‹ANN‚Ìo—Í `reg_op` ‚ğg—p‚·‚éB
+
 
 ```python:trainingModel.py
 # Classification loss
 # gt label (y_label) vs predicted label (cls_op)
-loss_cls = Loss(y_label,cls_op)
-loss_cls_test = Loss(y_label,cls_op_test)
+loss_cls = Loss(y_label,cls_op,isCE=True)
+loss_cls_test = Loss(y_label,cls_op_test,isCE=True)
     
 # Baseline regression loss train & test
 # gt value (y) vs predicted value (reg_op)
-loss_reg = Loss(y,reg_op,isR=is_reg)
-loss_reg_test = Loss(y,reg_op_test,isR=is_reg)
+loss_reg = Loss(y,reg_op)
+loss_reg_test = Loss(y,reg_op_test)
     
 # Regression loss for Anchor-based
 # gt residual (res) vs predicted residual (res_op)
-loss_anc = Loss(res,res_op,isR=is_reg)
-loss_anc_test = Loss(res_test,res_op_test,isR=is_reg)
+loss_anc = Loss(res,reg_op)
+loss_anc_test = Loss(res_test,reg_op_test)
     
 # Regression loss for Atr-nets
 # gt truncated residual (res_at) vs predicted truncated residual (res_op)
-loss_atr = Loss(res_atr,res_op,isR=is_reg)
-loss_atr_test = Loss(res_atr_test,res_op_test,isR=is_reg)
+loss_atr = Loss(res_atr,reg_op)
+loss_atr_test = Loss(res_atr_test,reg_op_test)
     
 # Training alpha loss
 # gt value (y) vs predicted value (pred_yz = pred_cls_center + reduce_res)
-loss_alpha = Loss(y,pred_y,isR=is_reg)
-loss_alpha_test = Loss(y,pred_y_test,isR=is_reg)
+loss_alpha = Loss(y,pred_y)
+loss_alpha_test = Loss(y,pred_y_test)
 ``` 
 
-- æœ€é©åŒ–
-- Baseline Regressionã¯ `trainer_reg`ã€Anchor-based regressionã¯`trainer_cls`ã¨`trainer_anc`ã€ATR-Netsã¯`trainer_cls`ã¨`trainer_atr`ã¨`trainer_alpha` 
-- name_scopeã§åˆ†é¡NNã¯`Classify`ã€alphaå­¦ç¿’å™¨ã¯`TrResidual`ã‚’æŒ‡å®šã€‚(å›å¸°NNã¯æŒ‡å®šã™ã‚‹å¿…è¦ãªã—)
+- Å“K‰»
+	- Baseline Regression‚Í `trainer_reg`AAnchor-based regression‚Í`trainer_cls`‚Æ`trainer_anc`AATR-Nets‚Í`trainer_cls`‚Æ`trainer_atr`‚Æ`trainer_alpha` 
+	- name_scope‚Å•ª—ŞNN‚Í`Classify`AalphaŠwKŠí‚Í`TrResidual`‚ğw’èB(‰ñ‹ANN‚Íw’è‚·‚é•K—v‚È‚µ)
 
 ```python:trainingModel.py
 # for classification 
@@ -655,8 +730,8 @@ trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 <a id="ID_3"></a>
 
 
-## å„æ‰‹æ³•ã®Graphå®Ÿè¡Œ (pythonä¸Š): `trainingMdel.py`
-ãƒŸãƒ‹ãƒãƒƒãƒãƒ‡ãƒ¼ã‚¿å–å¾—ã€å­¦ç¿’ãƒ•ã‚§ãƒ¼ã‚ºå®Ÿè¡Œã€ãƒ†ã‚¹ãƒˆãƒ•ã‚§ãƒ¼ã‚ºå®Ÿè¡Œã®3ã¤ã®æ®µéšã«å¤§ããåˆ†ã‘ã‚‰ã‚Œã‚‹ã€‚
+## Šeè–@‚ÌGraphÀs (pythonã) : `trainingMdel.py`
+ƒ~ƒjƒoƒbƒ`ƒf[ƒ^æ“¾AŠwKƒtƒF[ƒYÀsAƒeƒXƒgƒtƒF[ƒYÀs‚Ì3‚Â‚Ì’iŠK‚É‘å‚«‚­•ª‚¯‚ç‚ê‚éB
 
 <br>
 
@@ -664,14 +739,13 @@ trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
 <a id="ID_3-1"></a>
 
-### ãƒŸãƒ‹ãƒãƒƒãƒ
+### ƒ~ƒjƒoƒbƒ` : `makingData.py`
 
 ```python:makingData.py
 
-def nextBatch(Otr,Ttr,Tlabel,batchSize):
+def nextBatch(Otr,Ttr,Tlabel,batchSize,batchCnt = 0):
     ...
-    # batch count initialize
-    #batchCnt = 0
+    
     sInd = batchSize * batchCnt
     eInd = sInd + batchSize
     
@@ -686,18 +760,20 @@ def nextBatch(Otr,Ttr,Tlabel,batchSize):
     # [batchSize,number of dimention]
     return batchX,batchY,batchlabelY
 ```
-- å¼•æ•°
-	- Otr: å­¦ç¿’ãƒ‡ãƒ¼ã‚¿ã®èª¬æ˜å¤‰æ•° $x_1$,$x_2$
-	- Ttr: å­¦ç¿’ãƒ‡ãƒ¼ã‚¿ã®ç›®çš„å¤‰æ•° y
-	- Tlabel: å­¦ç¿’ãƒ‡ãƒ¼ã‚¿ã®ç›®çš„å¤‰æ•°ã®ãƒ©ãƒ™ãƒ« (one-hot)
-	- batchSize: ãƒãƒƒãƒã‚µã‚¤ã‚º
+- ˆø”
+	- Otr: ŠwKƒf[ƒ^‚Ìà–¾•Ï” $$x_1$$,$$x_2$$
+	- Ttr: ŠwKƒf[ƒ^‚Ì–Ú“I•Ï” y
+	- Tlabel: ŠwKƒf[ƒ^‚Ì–Ú“I•Ï”‚Ìƒ‰ƒxƒ‹ (one-hot)
+	- batchSize: ƒoƒbƒ`ƒTƒCƒY
+	- batchCnt: ƒoƒbƒ`ƒJƒEƒ“ƒg‚Ì‰Šú‰» (`trainingModel.py`‚Ås‚¤)
 	
 
 
-- ãƒŸãƒ‹ãƒãƒƒãƒé–¢æ•°ã‚’å‘¼ã¶
+- ƒ~ƒjƒoƒbƒ`ŠÖ”‚ğŒÄ‚Ô
 ```python:trainingModel.py
 # Get mini-batch
-batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel)
+batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel,batchSize,batchCnt = 0)
+```
 
 <br>
 
@@ -705,8 +781,8 @@ batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel)
 
 
 ### Baseline Regression
-- Optimizer `trainer_reg`ã€ç›®çš„å¤‰æ•°ã®äºˆæ¸¬å€¤ `res_op`ã€ Loss `loss_reg`
-- feed_dictã§ã€`x_reg`ã«èª¬æ˜å¤‰æ•°ã€`y`ã«ç›®çš„å¤‰æ•°ã‚’ä¸ãˆã‚‹
+- Optimizer‚Í `trainer_reg`A–Ú“I•Ï”‚Ì—\‘ª’l `reg_op`A Loss‚Í `loss_reg`
+- feed_dict‚ÅA`x_reg`‚Éà–¾•Ï”A`y`‚É–Ú“I•Ï”‚ğ—^‚¦‚é
 
 ```python:makingData.py
         if methodModel == 0:
@@ -723,24 +799,30 @@ batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel)
 <a id="ID_3-3"></a>
 
 ### Anchor-based
-- Optimizer `trainer_cls`(åˆ†é¡NN)ã¨ `trainer_anc`(å›å¸°NN)ã€ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `pred_cls_center` ã¨æ®‹å·®ã®äºˆæ¸¬å€¤ `res_op`ã€ Loss `loss_cls`(åˆ†é¡NN)ã¨`loss_anc`(å›å¸°NN)
-- feed_dictã§ã€`x_cls`ã«èª¬æ˜å¤‰æ•°ã€`y`ã«ç›®çš„å¤‰æ•°ã€`y_label`ã«ç›®çš„å¤‰æ•°ã®ãƒ©ãƒ™ãƒ«(one-hot)ã‚’ä¸ãˆã‚‹
-- ç›®çš„å¤‰æ•°ã®äºˆæ¸¬å€¤ `trainPred` ã¯ ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `trainClsCenter` + æ®‹å·®ã®äºˆæ¸¬å€¤ `trainResPred` (pythonä¸Šã®è¡¨è¨˜)
+
+- Optimizer‚Í `trainer_cls`(•ª—ŞNN)‚Æ `trainer_anc`(‰ñ‹ANN)AƒNƒ‰ƒX‚Ì’†S’l `pred_cls_center` ‚Æc·‚Ì—\‘ª’l `reg_op`A Loss‚Í `loss_cls`(•ª—ŞNN)‚Æ`loss_anc`(‰ñ‹ANN)
+- feed_dict‚ÅA`x_cls`‚Éà–¾•Ï”A`x_reg`‚ÉƒNƒ‰ƒX‚Ì’†S’l‚Æà–¾•Ï”‚ğconcat‚µ‚½‚à‚ÌA`y`‚É–Ú“I•Ï”A`y_label`‚É–Ú“I•Ï”‚Ìƒ‰ƒxƒ‹(one-hot)‚ğ—^‚¦‚é
+- –Ú“I•Ï”‚Ì—\‘ª’l `trainPred` ‚Í ƒNƒ‰ƒX‚Ì’†S’l `trainClsCenter` + c·‚Ì—\‘ª’l `trainResPred` (pythonã‚Ì•\‹L)
 
 
 ```python:makingData.py
 elif methodModel == 1:
             # classication
             _, trainClsCenter, trainClsLoss = sess.run([trainer_cls, pred_cls_center, loss_cls], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+            # feature vector in regression
+            trInReg = np.concatenate([trainClsCenter,batchX],1)            
             # regression
-            _, trainResPred, trainResLoss = sess.run([trainer_anc, res_op, loss_anc],feed_dict={y:batchY, y_label:batchlabelY})
+            _, trainResPred, trainResLoss = sess.run([trainer_anc, reg_op, loss_anc],feed_dict={x_cls:batchX, x_reg:trInReg ,y:batchY, y_label:batchlabelY})
             
             # -------------------- Test ------------------------------------- #
             if i % testPeriod == 0:
                 # classication
                 testClsLoss, testClsCenter = sess.run([loss_cls_test, pred_cls_center_test], feed_dict={x_cls:xTest, y:yTest, y_label:yTestlabel})    
+                # feature vector in regression
+                teInReg = np.concatenate([testClsCenter,xTest],1)
                 # regression
-                testResLoss, testResPred = sess.run([loss_anc_test, res_op_test], feed_dict={y:yTest, y_label:yTestlabel})
+                testResLoss, testResPred = sess.run([loss_anc_test, reg_op_test], feed_dict={x_cls:xTest, x_reg:teInReg ,y:yTest, y_label:yTestlabel})
+
                 
                 # Reduce
                 trainPred = trainClsCenter + trainResPred
@@ -755,9 +837,9 @@ elif methodModel == 1:
         
 ### ATR-Nets
 
-- Optimizer `trainer_cls`(åˆ†é¡NN)ã¨ `trainer_atr`(å›å¸°NN)ã€ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `pred_cls_center` ã¨æ‹¡å¤§ã—ãŸæ®‹å·®ã®äºˆæ¸¬å€¤ `res_op`ã€ Loss `loss_cls`(åˆ†é¡NN)ã¨`loss_atr`(å›å¸°NN)ã¨`loss_alpha`(alphaå­¦ç¿’)
-- feed_dictã§ã€`x_cls`ã«èª¬æ˜å¤‰æ•°ã€`y`ã«ç›®çš„å¤‰æ•°ã€`y_label`ã«ç›®çš„å¤‰æ•°ã®ãƒ©ãƒ™ãƒ«(one-hot)ã‚’ä¸ãˆã‚‹
-- ç›®çš„å¤‰æ•°ã®äºˆæ¸¬å€¤ `trainPred` ã¯ ã‚¯ãƒ©ã‚¹ã®ä¸­å¿ƒå€¤ `trainClsCenter` + æ‹¡å¤§ã•ã‚ŒãŸæ®‹å·®ã‚’ã‚‚ã¨ã«æˆ»ã—ãŸäºˆæ¸¬å€¤ `trainRResPred` (pythonä¸Šã®è¡¨è¨˜)
+- Optimizer‚Í `trainer_cls`(•ª—ŞNN)‚Æ `trainer_atr`(‰ñ‹ANN)AƒNƒ‰ƒX‚Ì’†S’l `pred_cls_center` ‚ÆŠg‘å‚µ‚½c·‚Ì—\‘ª’l `reg_op`A Loss‚Í `loss_cls`(•ª—ŞNN)‚Æ`loss_atr`(‰ñ‹ANN)‚Æ`loss_alpha`(alphaŠwK)
+- feed_dict‚ÅA`x_cls`‚Éà–¾•Ï”A`x_reg`‚ÉƒNƒ‰ƒX‚Ì’†S’l‚Æà–¾•Ï”‚ğconcat‚µ‚½‚à‚ÌA`y`‚É–Ú“I•Ï”A`y_label`‚É–Ú“I•Ï”‚Ìƒ‰ƒxƒ‹(one-hot)‚ğ—^‚¦‚é
+- –Ú“I•Ï”‚Ì—\‘ª’l `trainPred` ‚Í ƒNƒ‰ƒX‚Ì’†S’l `trainClsCenter` + Šg‘å‚³‚ê‚½c·‚ğ‚à‚Æ‚É–ß‚µ‚½—\‘ª’l `trainRResPred` (pythonã‚Ì•\‹L)
 
 
 
@@ -766,20 +848,23 @@ elif methodModel == 1:
 elif methodModel == 2:
             # classication
             _, trainClsCenter, trainClsLoss = sess.run([trainer_cls, pred_cls_center, loss_cls], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+            # feature vector in regression
+            trInReg = np.concatenate([trainClsCenter,batchX],1)            
             # regression
-            _, trainResPred, trainResLoss = sess.run([trainer_atr, res_op, loss_atr], feed_dict={y:batchY, y_label:batchlabelY})
+            _, trainResPred, trainResLoss = sess.run([trainer_atr, reg_op, loss_atr], feed_dict={x_cls:batchX, x_reg:trInReg, y:batchY, y_label:batchlabelY})
             # alpha
-            pdb.set_trace()
-            _, trainAlpha, trainRResPred, trainAlphaLoss = sess.run([trainer_alpha, alpha_op, reduce_res_op, loss_alpha], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+            _, trainAlpha, trainRResPred, trainAlphaLoss = sess.run([trainer_alpha, alpha_op, reduce_res_op, loss_alpha], feed_dict={x_cls:batchX, x_reg:trInReg, y:batchY, y_label:batchlabelY})
             
             # -------------------- Test ------------------------------------- #
             if i % testPeriod == 0:
                 # classication
                 testClsLoss, testClsCenter = sess.run([loss_cls_test, pred_cls_center_test], feed_dict={x_cls:xTest, y:yTest, y_label:yTestlabel})    
+                # feature vector in regression
+                teInReg = np.concatenate([testClsCenter,xTest],1)
                 # regression
-                testResLoss, testResPred = sess.run([loss_atr_test, res_op_test], feed_dict={y:yTest, y_label:yTestlabel})
+                testResLoss, testResPred = sess.run([loss_atr_test, reg_op_test], feed_dict={x_cls:xTest, x_reg:teInReg, y:yTest, y_label:yTestlabel})
                 # test alpha
-                testAlphaLoss, testAlpha, testRResPred = sess.run([loss_alpha_test, alpha_op_test, reduce_res_op_test], feed_dict={x_cls:xTest, y:yTest, y_label:yTestlabel})
+                testAlphaLoss, testAlpha, testRResPred = sess.run([loss_alpha_test, alpha_op_test, reduce_res_op_test], feed_dict={x_cls:xTest, x_reg:teInReg, y:yTest, y_label:yTestlabel})
                 
                 # Recover
                 trainPred = trainClsCenter + trainRResPred
@@ -788,7 +873,7 @@ elif methodModel == 2:
 
 <a id="ID_3-5"></a>
 
-## ãƒ¢ãƒ‡ãƒ«ã®ä¿å­˜
+## ƒ‚ƒfƒ‹‚Ì•Û‘¶
 
 
 ```python:makingData.py
@@ -798,10 +883,64 @@ modelfullPath = os.path.join(modelPath,modelFileName)
 saver.save(sess,modelfullPath)
 ```
 
+<br>
+
+<a id="ID_4"></a>
 
 
+## ÀsŒ‹‰Ê: `plot.py`
+^’l‚Ìtoydata‚Æ—\‘ª‚µ‚½toydata‚ªvisualizationƒfƒBƒŒƒNƒgƒŠ‚ÉAloss‚Ívisualization\lossƒfƒBƒŒƒNƒgƒŠ‚É•Û‘¶‚³‚ê‚éB
 
 
+```python: plot.py
+def Plot_3D(x1,x2,yGT,yPred,isPlot=False,methodModel=0,sigma=0,nClass=0,alpha=0,pNum=0,depth=0,isTrain=0):
+    ...
+    table = str.maketrans("", "" , string.punctuation + ".")
+    sigma = str(sigma).translate(table)
+    pdb.set_trace()
+    if isPlot:
+         
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        ax.set_xlabel("x1")
+        ax.set_ylabel("x2")
+        ax.set_zlabel("y")
+        # •]‰¿ƒf[ƒ^plot
+        ax.plot(np.reshape(x1,[-1,]),np.reshape(x2,[-1,]),np.reshape(yGT,[-1,]),"o",color="b",label="GT")
+        # —\‘ª’lplot
+        ax.plot(np.reshape(x1,[-1,]),np.reshape(x2,[-1,]),np.reshape(yPred,[-1,]),"o",color="r",label="Pred")
+        plt.legend()
+        fullPath = os.path.join(visualPath,"Pred_{}_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth,isTrain))
+        
+        plt.savefig(fullPath)
 
-
+#-----------------------------------------------------------------------------#              
+def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainRegLosses, testRegLosses, testPeriod, isPlot=False,methodModel=0,sigma=0,nClass=0,alpha=0,pNum=0,depth=0):
+    if isPlot:
+        if methodModel==2 or methodModel==1:
+            # lossPlot
+            plt.plot(np.arange(trainTotalLosses.shape[0]),trainTotalLosses,label="trainTotalLosses",color="r")
+            plt.plot(np.arange(testTotalLosses.shape[0]),testTotalLosses,label="testTotalLosses",color="g")
+            plt.plot(np.arange(trainClassLosses.shape[0]),trainClassLosses,label="trainClassLosses",color="b")
+            plt.plot(np.arange(testClassLosses.shape[0]),testClassLosses,label="testClassLosses",color="k")
+            plt.plot(np.arange(trainRegLosses.shape[0]),trainRegLosses,label="trainRegLosses",color="c")
+            plt.plot(np.arange(testRegLosses.shape[0]),testRegLosses,label="testRegLosses",color="pink")
+        
+            plt.ylim([0,0.5])
+            plt.xlabel("iteration x {}".format(testPeriod))
+            plt.legend()
+            
+            fullPath = os.path.join(visualPath,lossPath,"Loss_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth))
+        else:
+            plt.plot(np.arange(trainClassLosses.shape[0]),trainClassLosses,label="trainRegLosses",color="c")
+         
+            plt.ylim([0,0.5])
+            plt.xlabel("iteration x {}".format(testPeriod))
+            plt.legend()
+            
+            fullPath = os.path.join(visualPath,lossPath,"Loss_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth))
+        
+        plt.savefig(fullPath)
+#-----------------------------------------------------------------------------#      
+```
 
