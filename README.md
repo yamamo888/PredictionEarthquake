@@ -208,7 +208,7 @@ Baseline Regression は、回帰ニューラルネットワーク (NN)であり、Anchor-based Regr
 
 - Anchor-basedのモデル図
 
-<img width="100" alt=anchor-based src=/results/anchor-based.png>
+![anchor-based](/results/anchor-based.png)
 
 <br>
 
