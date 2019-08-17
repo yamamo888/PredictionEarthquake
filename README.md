@@ -82,7 +82,7 @@ depth = int(sys.argv[5])
 (x1,x2,y)からなる３次元のらせん階段データを作成する。
 y は 0 ~ Sigma  の一様乱数分布 U(0,Sigma) に従って発生させたデータ。以下、目的変数yと説明変数 x1,x2 の関係式:<br>
 
-> <img width="100" alt=makedata src=/results/makedata.png>
+> ![makedata](/results/makedata.png)
 
 
 <br>
@@ -208,7 +208,7 @@ Baseline Regression は、回帰ニューラルネットワーク (NN)であり、Anchor-based Regr
 
 - Anchor-basedのモデル図
 
-![anchor-based](/results/anchor-based.png)
+<img width="100" alt=anchor-based src=/results/anchor-based.png>
 
 <br>
 
@@ -531,7 +531,7 @@ def CreateRegInputOutput(x,y,cls_score):
 - 残差の範囲を_sigmoid関数_を用いて、[0,1] にエンコードする
 - sigmoid関数の傾き `alpha` は学習して最適化する
 - 残差とエンコードされた残差との関係式： <bf>
-> ![rat](\results\rat.png)
+> ![rat](/results/rat.png)
 
 
 ```python:trainingModel.py
@@ -562,7 +562,7 @@ def TruncatedResidual(r,reuse=False):
 
 - エンコードされた残差をもとの範囲の残差に戻す 
 - 式：<bf>
-> ![r](\results\r.png)
+> ![r](/results/r.png)
 
 ```python:trainingModel.py
 def Reduce(r_at,alpha,reuse=False):
