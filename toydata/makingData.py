@@ -14,7 +14,7 @@ import numpy as np
 # training rate
 trainRatio = 0.8
 # number of data
-nData = 8000
+nData = 4000
 # number of train data
 #nTrain = int(nData * trainRatio)
 # number of test data

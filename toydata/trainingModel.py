@@ -73,7 +73,7 @@ first_cls_center = np.round(yMin + (beta / 2),limitdecimal)
 # Learning rate
 lr = 1e-4
 # number of training
-nTraining = 10000
+nTraining = 2000
 # batch size
 batchSize = 100
 # batch count initializer
