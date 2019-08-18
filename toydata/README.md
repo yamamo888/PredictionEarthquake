@@ -82,8 +82,7 @@ depth = int(sys.argv[5])
 (x1,x2,y)からなる３次元のらせん階段データを作成する。
 y は 0 ~ Sigma  の一様乱数分布 U(0,Sigma) に従って発生させたデータ。以下、目的変数yと説明変数 x1,x2 の関係式:<br>
 
-> ![makedata](/results/makedata.png)
-
+![makedata](https://user-images.githubusercontent.com/32571202/63222016-9cd9dc00-c1dc-11e9-9379-637eb23210a5.png)
 
 <br>
 
@@ -195,8 +194,7 @@ def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
 <a id="ID_1-2"></a>
 
 - らせん階段データ (全データ)
-![toydata](/results/toydata.png)
-
+![toydata](https://user-images.githubusercontent.com/32571202/63222020-a2372680-c1dc-11e9-81d6-a85fa650ba21.png)
 <br>
 
 <a id="ID_1-1"></a>
@@ -213,7 +211,7 @@ Baseline Regression は、回帰ニューラルネットワーク (NN)であり�
 
 - ATR-Netsのモデル図
 
-![atr-nets](/results/atr-nets.png)
+![atr-nets](https://user-images.githubusercontent.com/32571202/63222015-9a778200-c1dc-11e9-9aff-9a7460e21dd0.png)
 
 
 <br>
@@ -533,6 +531,10 @@ def CreateRegInputOutput(x,y,cls_score):
 > ![rat](/results/rat.png)
 
 
+> ![rat](https://user-images.githubusercontent.com/32571202/63222018-a06d6300-c1dc-11e9-8c4d-90080b9ddcb7.png)
+
+
+
 ```python:trainingModel.py
 def TruncatedResidual(r,reuse=False):
     ...
@@ -555,13 +557,16 @@ def TruncatedResidual(r,reuse=False):
 <br>
 
 - 残差とエンコードされた残差の関係図 
-![atr](/results/atr.png)
+
+![atr](https://user-images.githubusercontent.com/32571202/63222009-977c9180-c1dc-11e9-8769-4be10de7125e.png)
 
 <br>
 
 - エンコードされた残差をもとの範囲の残差に戻す 
 - 式：<bf>
-> ![r](/results/r.png)
+> ![r](https://user-images.githubusercontent.com/32571202/63222017-9ea39f80-c1dc-11e9-81ce-c677f5c1b1f7.png)
+
+
 
 ```python:trainingModel.py
 def Reduce(r_at,alpha,reuse=False):
