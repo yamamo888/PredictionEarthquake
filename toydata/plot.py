@@ -62,7 +62,7 @@ def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLoss
             #plt.plot(np.arange(trainRegLosses.shape[0]),trainRegLosses,label="trainRegLosses",color="c")
             #plt.plot(np.arange(testRegLosses.shape[0]),testRegLosses,label="testRegLosses",color="pink")
         
-            #plt.ylim([0,0.5])
+            plt.ylim([0,2.5])
             plt.xlabel("iteration x {}".format(testPeriod))
             plt.legend()
             
@@ -72,7 +72,7 @@ def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLoss
             plt.plot(np.arange(trainRegLosses.shape[0]),trainRegLosses,label="trainRegLosses",color="c")
             plt.plot(np.arange(testRegLosses.shape[0]),trainRegLosses,label="testRegLosses",color="pink")
          
-            #plt.ylim([0,0.5])
+            plt.ylim([0,2.5])
             plt.xlabel("iteration x {}".format(testPeriod))
             plt.legend()
             
