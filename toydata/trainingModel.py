@@ -1,10 +1,12 @@
 # -*- co    ding: utf-8 -*-
 
 import sys
+import os
 
 import numpy as np
 import tensorflow as tf
 
+import pickle
 import pdb
 
 import makingData as myData
@@ -21,6 +23,12 @@ nClass = int(sys.argv[3])
 pNum = int(sys.argv[4])
 # number of layer for Regression NN
 depth = int(sys.argv[5])
+# -----------------------------------------------------------------------------
+
+# ------------------------------- path ----------------------------------------
+results = "results"
+pickles = "pickles"
+pickleFullPath = os.path.join(results,pickles)
 # -----------------------------------------------------------------------------
 
 # --------------------------- parameters --------------------------------------
@@ -65,7 +73,7 @@ first_cls_center = np.round(yMin + (beta / 2),limitdecimal)
 # Learning rate
 lr = 1e-4
 # number of training
-nTraining = 2000
+nTraining = 10000
 # batch size
 batchSize = 100
 # batch count initializer
@@ -569,17 +577,33 @@ def main():
         myPlot.Plot_3D(xTest[:,0],xTest[:,1],yTest,testPred, isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=0, alpha=0, pNum=pNum, depth=depth, isTrain=0)
         myPlot.Plot_3D(batchX[:,0],batchX[:,1],batchY,trainPred, isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=0, alpha=0, pNum=pNum, depth=depth, isTrain=1)
         
+        with open(os.path.join(pickleFullPath,"test_{}_{}_{}_{}_{}.pkl".format(methodModel,sigma,nClass,pNum,depth)),"wb") as fp:
+                pickle.dump(batchY,fp)
+                pickle.dump(trainPred,fp)
+                pickle.dump(yTest,fp)
+                pickle.dump(testPred,fp)
+
     elif methodModel == 1:
         myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=nClass, alpha=0, pNum=pNum, depth=depth)   
         myPlot.Plot_3D(xTest[:,0],xTest[:,1],yTest,testPred, isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=nClass, alpha=0, pNum=pNum, depth=depth, isTrain=0)
         myPlot.Plot_3D(batchX[:,0],batchX[:,1],batchY,trainPred, isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=nClass, alpha=0, pNum=pNum, depth=depth, isTrain=1)
+        
+        with open(os.path.join(pickleFullPath,"test_{}_{}_{}_{}_{}.pkl".format(methodModel,sigma,nClass,pNum,depth)),"wb") as fp:
+                pickle.dump(batchY,fp)
+                pickle.dump(trainPred,fp)
+                pickle.dump(yTest,fp)
+                pickle.dump(testPred,fp)
         
     elif methodModel == 2: 
         myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod,isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=nClass, alpha=testAlpha, pNum=pNum, depth=depth)    
         myPlot.Plot_3D(xTest[:,0],xTest[:,1],yTest,testPred, isPlot=isPlot, methodModel=methodModel, sigma=sigma, nClass=nClass, alpha=testAlpha, pNum=pNum, depth=depth, isTrain=0)
         myPlot.Plot_3D(batchX[:,0],batchX[:,1],batchY,trainPred, isPlot=isPlot,methodModel=methodModel,sigma=sigma,nClass=nClass,alpha=trainAlpha,pNum=pNum,depth=depth,isTrain=1)
         
+        with open(os.path.join(pickleFullPath,"test_{}_{}_{}_{}_{}_{}.pkl".format(methodModel,sigma,nClass,testAlpha,pNum,depth)),"wb") as fp:
+                pickle.dump(batchY,fp)
+                pickle.dump(trainPred,fp)
+                pickle.dump(yTest,fp)
+                pickle.dump(testPred,fp)
     # ----------------------------------------------------------------------- #  
-    
 if __name__ == "__main__":
     main()

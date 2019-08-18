@@ -11,7 +11,7 @@ import pdb
 import string
 
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -46,7 +46,7 @@ def Plot_3D(x1,x2,yGT,yPred,isPlot=False,methodModel=0,sigma=0,nClass=0,alpha=0,
         # 予測値plot
         ax.plot(np.reshape(x1,[-1,]),np.reshape(x2,[-1,]),np.reshape(yPred,[-1,]),"o",color="r",label="Pred")
         plt.legend()
-        fullPath = os.path.join(visualPath,"Pred_{}_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth,isTrain,yGT.shape[0]))
+        fullPath = os.path.join(visualPath,"Pred_{}_{}_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth,isTrain,yGT.shape[0]))
         
         plt.savefig(fullPath)
     
@@ -68,7 +68,7 @@ def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLoss
             
             fullPath = os.path.join(visualPath,lossPath,"Loss_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth))
         else:
-            pdb.set_trace()
+            
             plt.plot(np.arange(trainRegLosses.shape[0]),trainRegLosses,label="trainRegLosses",color="c")
             plt.plot(np.arange(testRegLosses.shape[0]),trainRegLosses,label="testRegLosses",color="pink")
          
