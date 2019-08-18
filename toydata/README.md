@@ -29,6 +29,12 @@
 	5. [モデルの保存](#ID_3-5)
 
 3. [実行結果 : `plot.py`](#ID_4)
+	1. [Baseline RegressionとATR-Netsのloss収束比較](#ID_4-1)
+	2. [各手法の予測結果比較 (バッチあり学習 & 3階層モデル)](#ID_4-2)
+	3. [各手法の予測結果比較 (バッチあり学習 & 5階層モデル)](#ID_4-3)
+	4. [各手法の予測結果比較 (バッチなし学習 & 3階層モデル)](#ID_4-4)
+	5. [各手法の予測結果比較 (バッチなし学習 & 5階層モデル)](#ID_4-5)
+
 
 <a id="ID_0"></a>
 
@@ -947,4 +953,85 @@ def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLoss
         plt.savefig(fullPath)
 #-----------------------------------------------------------------------------#      
 ```
+
+<a id="ID_4"></a>
+
+## 実行結果 : `plot.py`
+lossの結果と予測結果を描画
+
+<a id="ID_4-1"></a>
+
+### Baseline Regression と ATR-Nets のloss収束比較
+
+- 上段が3階層の回帰NNを使用したBaseline Regression と ATR-Nets (10クラス) における学習とテストのloss であり、下段が5階層の場合である
+- 横軸は500イテレーションに対応している
+
+![loss](https://user-images.githubusercontent.com/32571202/63224465-ade81480-c1ff-11e9-9e97-8940ae3b2443.png)
+
+<a id="ID_4-2"></a>
+
+### 各手法の予測結果比較 (バッチあり学習 & 3階層モデル) 
+
+- 条件：
+	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 100こ**
+	- 学習回数(iteration) 20万回
+	- 絶対平均誤差関数
+	- 各手法の回帰NNは**3階層**
+- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
+- 上段が学習データ、下段がテストデータである
+- 青が真値で、赤が予測値
+
+![result1](https://user-images.githubusercontent.com/32571202/63224350-bb040400-c1fd-11e9-98b0-d4952a1340fa.png)
+
+
+<a id="ID_4-3"></a>
+
+### 各手法の予測結果比較 (バッチあり学習 & 5階層モデル) 
+
+- 条件：
+	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 100こ**
+	- 学習回数(iteration) 20万回
+	- 絶対平均誤差関数
+	- 各手法の回帰NNは**5階層**
+- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
+- 上段が学習データ、下段がテストデータである
+- 青が真値で、赤が予測値
+
+![result2](https://user-images.githubusercontent.com/32571202/63224352-bd665e00-c1fd-11e9-9fe3-f3af23f9dca2.png)
+
+***
+
+<a id="ID_4-4"></a>
+
+### 各手法の予測結果比較 (バッチなし学習 & 3階層モデル) 
+
+- 条件：
+	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 なし**
+	- 学習回数(iteration) 20万回
+	- 絶対平均誤差関数
+	- 各手法の回帰NNは**3階層**
+- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
+- 上段が学習データ、下段がテストデータである
+- 青が真値で、赤が予測値
+
+![result1](https://user-images.githubusercontent.com/32571202/63224350-bb040400-c1fd-11e9-98b0-d4952a1340fa.png)
+
+
+<a id="ID_4-5"></a>
+
+### 各手法の予測結果比較 (バッチなし学習 & 5階層モデル) 
+
+- 条件：
+	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 なし**
+	- 学習回数(iteration) 20万回
+	- 絶対平均誤差関数
+	- 各手法の回帰NNは**5階層**
+- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
+- 上段が学習データ、下段がテストデータである
+- 青が真値で、赤が予測値
+
+![result2](https://user-images.githubusercontent.com/32571202/63224352-bd665e00-c1fd-11e9-9fe3-f3af23f9dca2.png)
+
+
+
 
