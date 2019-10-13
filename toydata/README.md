@@ -13,29 +13,25 @@
 	1. [コードの説明](#ID_1-1)
 	2. [らせん階段の例(コードの実行結果)](#ID_1-2)
 
-2. [各手法のGraph作成 (tensorflow上) : `trainingMdel.py`](#ID_2)
-	1. [パラメータ](#ID_2-1-1)
-	2. [分類NNと回帰NN](#ID_2-1-2)
-	3. [Anchor-based regressionとATR-Netsの回帰NNで使用する入力と出力の作成](#ID_2-1-3)
-	4. [ATR-Netsの工夫点](#ID_2-1-4)
-	5. [誤差関数・最適化](#ID_2-1-5)
-	6. [関数の呼び出し](#ID_2-1-6)
+2. [nankaiデータの読み込み：`loadingData.py`](#ID_2)
 
-3. [各手法のGraph実行 (python上) : `trainingMdel.py`](#ID_3)
-	1. [ミニバッチ(学習データ) : `makingData.py`](#ID_3-1)
-	2. [Baseline Regression](#ID_3-2)
-	3. [Anchor-based regression](#ID_3-3)
-	4. [ATR-Nets](#ID_3-4)
-	5. [モデルの保存](#ID_3-5)
+3. [各手法のGraph作成 (tensorflow上) : `trainingMdel.py`](#ID_3)
+	1. [パラメータ](#ID_3-1-1)
+	2. [分類NNと回帰NN](#ID_3-1-2)
+	3. [Anchor-based regressionとATR-Netsの回帰NNで使用する入力と出力の作成](#ID_3-1-3)
+	4. [ATR-Netsの工夫点](#ID_3-1-4)
+	5. [誤差関数・最適化](#ID_3-1-5)
+	6. [関数の呼び出し](#ID_3-1-6)
 
-3. [実行結果 : `plot.py`](#ID_4)
-	1. [Baseline RegressionとATR-Netsのloss収束比較](#ID_4-1)
-	2. [各手法の予測結果比較 (バッチあり学習 & 3階層モデル)](#ID_4-2)
-	3. [各手法の予測結果比較 (バッチあり学習 & 5階層モデル)](#ID_4-3)
-	4. [各手法の予測結果比較 (バッチなし学習 & 3階層モデル)](#ID_4-4)
-	5. [各手法の予測結果比較 (バッチなし学習 & 5階層モデル)](#ID_4-5)
+4. [各手法のGraph実行 (python上) : `trainingMdel.py`](#ID_4)
+	1. [ミニバッチ(学習データ) : `makingData.py`](#ID_4-1)
+	2. [Baseline Regression](#ID_4-2)
+	3. [Anchor-based regression](#ID_4-3)
+	4. [ATR-Nets](#ID_4-4)
+	5. [モデルの保存](#ID_4-5)
 
-
+5. [実行結果 : `Plot.py`](#ID_5)
+	
 <a id="ID_0"></a>
 
 ## 使い方
@@ -44,20 +40,33 @@
 
 ### コマンド
 
-```
-python trainingModel.py <モデルの種類(methodModel)> <ノイズ(sigma)> <クラス数(number of class)> <回転数(number of rotation)> <階層数(number of layer in Regression NN)>
-```
-- 例：モデルは Anchor-based Regression、説明変数の分散は 0.00001、クラス数は 10、回転数 5、3 階層回帰NNを使用したい場合 :
-```python trainingModel.py 1 0.00001 10 5 3```
 
-- クラス数は Baseline Regressionの時には必要ないが、指定する必要あり
+以下はコマンド引数順と指定できる数字、コード上の名前と役割をまとめた。
 
+|コマンド引数|指定可能数字|名前|役割|
+|:----:|:----|:----|:----|
+|1|0(ordinary regression) or 1(anchor-based) or 2(ATR-Nets)|methodModel|手法|
+|2|float|sigma|toyデータのノイズ|
+|3|10 or 20 or 50|nClass|分類のクラス数|
+|4|2 or 3 or 5|pNum|toyデータの回転数|
+|5|3 or 4 or 5|depth|回帰NNの層数|
+|6|0(square) or 1(abs)|errorMode|回帰の損失関数|
+|7|int|batchSize|バッチサイズ|
+|8|int|nData|toyデータの数指定|
+|9|float|trainRatio|toyデータの割合指定|
+|10|float|alphaMode|alphaの初期値指定|
+|11|0(toy mode) or 1(nanaki mode)|dataMode|toyかnankaiかの実験を選択|
+|12|int|trialID|実験管理ID|
+
+- 実験に必要がない引数も設定する必要あり。
+
+- 例：nankaiでの実験設定 ---> モデルは Anchor-based Regression、クラス数は 10、3 階層回帰NNを使用、平均二乗誤差、バッチサイズは1000、alphaの初期値は10の場合 :
+```python trainingModel.py 1 0.00001 10 5 3 0 1000 1 1 0.1 1 1```
 
 <br>
 
 ### コードの説明
-- モデルの種類設定 `methodModel` は 0 のとき Baseline Regression、1 のとき Anchor-based Regression、2 のとき ATR-Nets を実行する
-- 説明変数の分散 `sigma` は 0.0000001 以下がおすすめ (x1, x2 の大きさが小さいので)
+- モデルの種類設定 `methodModel` は 0 のとき Ordinary Regression、1 のとき Anchor-based Regression、2 のとき ATR-Nets を実行する
 - 目的変数のクラス数 `nClass` は 10,20,50がおすすめ
 - 説明変数の回転数 `pNum`は 2か3か5ぐらいがおすすめ (1だと不定問題が起こらない、5以上は不定問題が起こりすぎるため)
 - 回帰NNの層数 `depth`は 3,4,5
@@ -895,173 +904,11 @@ saver.save(sess,modelfullPath)
 
 <br>
 
-<a id="ID_4"></a>
+<a id="ID_5"></a>
 
-
-## 実行結果: `plot.py`
+## 実行結果: `Plot.py`
 真値のtoydataと予測したtoydataがvisualizationディレクトリに、lossはvisualization\lossディレクトリに保存される。
 
-
-```python: plot.py
-def Plot_3D(x1,x2,yGT,yPred,isPlot=False,methodModel=0,sigma=0,nClass=0,alpha=0,pNum=0,depth=0,isTrain=0):
-    ...
-    table = str.maketrans("", "" , string.punctuation + ".")
-    sigma = str(sigma).translate(table)
-    pdb.set_trace()
-    if isPlot:
-         
-        fig = plt.figure()
-        ax = Axes3D(fig)
-        ax.set_xlabel("x1")
-        ax.set_ylabel("x2")
-        ax.set_zlabel("y")
-        # 評価データplot
-        ax.plot(np.reshape(x1,[-1,]),np.reshape(x2,[-1,]),np.reshape(yGT,[-1,]),"o",color="b",label="GT")
-        # 予測値plot
-        ax.plot(np.reshape(x1,[-1,]),np.reshape(x2,[-1,]),np.reshape(yPred,[-1,]),"o",color="r",label="Pred")
-        plt.legend()
-        fullPath = os.path.join(visualPath,"Pred_{}_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth,isTrain))
-        
-        plt.savefig(fullPath)
-
-#-----------------------------------------------------------------------------#              
-def Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainRegLosses, testRegLosses, testPeriod, isPlot=False,methodModel=0,sigma=0,nClass=0,alpha=0,pNum=0,depth=0):
-    if isPlot:
-        if methodModel==2 or methodModel==1:
-            # lossPlot
-            plt.plot(np.arange(trainTotalLosses.shape[0]),trainTotalLosses,label="trainTotalLosses",color="r")
-            plt.plot(np.arange(testTotalLosses.shape[0]),testTotalLosses,label="testTotalLosses",color="g")
-            plt.plot(np.arange(trainClassLosses.shape[0]),trainClassLosses,label="trainClassLosses",color="b")
-            plt.plot(np.arange(testClassLosses.shape[0]),testClassLosses,label="testClassLosses",color="k")
-            plt.plot(np.arange(trainRegLosses.shape[0]),trainRegLosses,label="trainRegLosses",color="c")
-            plt.plot(np.arange(testRegLosses.shape[0]),testRegLosses,label="testRegLosses",color="pink")
-        
-            plt.ylim([0,0.5])
-            plt.xlabel("iteration x {}".format(testPeriod))
-            plt.legend()
-            
-            fullPath = os.path.join(visualPath,lossPath,"Loss_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth))
-        else:
-            plt.plot(np.arange(trainClassLosses.shape[0]),trainClassLosses,label="trainRegLosses",color="c")
-         
-            plt.ylim([0,0.5])
-            plt.xlabel("iteration x {}".format(testPeriod))
-            plt.legend()
-            
-            fullPath = os.path.join(visualPath,lossPath,"Loss_{}_{}_{}_{}_{}_{}.png".format(methodModel,sigma,nClass,alpha,pNum,depth))
-        
-        plt.savefig(fullPath)
-#-----------------------------------------------------------------------------#      
-```
-
-<a id="ID_4"></a>
-
-## 実行結果 : `plot.py`
-lossの結果と予測結果を描画
-
-<a id="ID_4-1"></a>
-
-### Baseline Regression と ATR-Nets のloss収束比較
-
-- 上段が3階層の回帰NNを使用したBaseline Regression と ATR-Nets (10クラス) における学習とテストのloss であり、下段が5階層の場合である
-- 横軸は500イテレーションに対応している
-
-![loss](https://user-images.githubusercontent.com/32571202/63224465-ade81480-c1ff-11e9-9e97-8940ae3b2443.png)
-
-***
-<a id="ID_4-2"></a>
-
-### 各手法の予測結果比較 (バッチあり学習 & 3階層モデル) 
-
-- 条件：
-	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 100こ**
-	- 学習回数(iteration) 20万回
-	- 絶対平均誤差関数
-	- 各手法の回帰NNは**3階層**
-- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
-- 上段が学習データ、下段がテストデータである
-- 青が真値で、赤が予測値
-
-![result1](https://user-images.githubusercontent.com/32571202/63224350-bb040400-c1fd-11e9-98b0-d4952a1340fa.png)
-
-
-- テストデータを用いた真値と予測値の絶対差平均と分散の表
-
-|手法|Baseline|Anchor-based(10クラス)|Anchor-based(20クラス)|ATR-Nets(10クラス)|ATR-Nets(20クラス)|
-|:---:|:---:|:---:|:---:|:---:|:---:|
-|平均(分散)|0.160(0.114)|***0.0831(0.124)***|0.130(0.255)|***0.0974(0.0891)***|0.123(0.239)|
-
-***
-<a id="ID_4-3"></a>
-
-### 各手法の予測結果比較 (バッチあり学習 & 5階層モデル) 
-
-- 条件：
-	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 100こ**
-	- 学習回数(iteration) 20万回
-	- 絶対平均誤差関数
-	- 各手法の回帰NNは**5階層**
-- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
-- 上段が学習データ、下段がテストデータである
-- 青が真値で、赤が予測値
-
-![result2](https://user-images.githubusercontent.com/32571202/63224352-bd665e00-c1fd-11e9-9fe3-f3af23f9dca2.png)
-
-- テストデータを用いた真値と予測値の絶対差平均と分散の表
-
-|手法|Baseline|Anchor-based(10クラス)|Anchor-based(20クラス)|ATR-Nets(10クラス)|ATR-Nets(20クラス)|
-|:---:|:---:|:---:|:---:|:---:|:---:|
-|平均(分散)|0.0366(0.0472)|0.113(0.247)|0.104(0.223)|***0.0287(0.0344)***|0.0799(0.143)|
-
-***
-***
-<a id="ID_4-4"></a>
-
-### 各手法の予測結果比較 (バッチなし学習 & 3階層モデル) 
-
-- 条件：
-	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 なし**
-	- 学習回数(iteration) 20万回
-	- 絶対平均誤差関数
-	- 各手法の回帰NNは**3階層**
-- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
-- 上段が学習データ、下段がテストデータである
-- 青が真値で、赤が予測値
-
-![result3](https://user-images.githubusercontent.com/32571202/63225251-babd3600-c208-11e9-8aa2-9f891cccb91d.png)
-
-
-- テストデータを用いた真値と予測値の絶対差平均と分散の表
-
-|手法|Baseline|Anchor-based(10クラス)|Anchor-based(20クラス)|ATR-Nets(10クラス)|ATR-Nets(20クラス)|
-|:---:|:---:|:---:|:---:|:---:|:---:|
-|平均(分散)|0.0503(0.0450)|***0.0116(0.0174)***|***0.0191(0.0176)***|***0.0104(0.0174)***|***0.00790(0.0173)***|
-
-<a id="ID_4-5"></a>
-
-### 各手法の予測結果比較 (バッチなし学習 & 5階層モデル) 
-
-- 条件：
-	- 全データ4000こ 学習データ3200こ テストデータ 800こ **ミニバッチ数 なし**
-	- 学習回数(iteration) 20万回
-	- 絶対平均誤差関数
-	- 各手法の回帰NNは**5階層**
-- 黒波線を境目に、左から Baseline Regression と Anchor-based Regression と ATR-Nets に対応し、Anchor-based Regression と ATR-Nets は左が10クラス、右が20クラスである
-- 上段が学習データ、下段がテストデータである
-- 青が真値で、赤が予測値
-
-![result4](https://user-images.githubusercontent.com/32571202/63225252-bc86f980-c208-11e9-8afb-a0eb255a39c5.png)
-
-
-- テストデータを用いた真値と予測値の絶対差平均と分散の表
-
-|手法|Baseline|Anchor-based(10クラス)|Anchor-based(20クラス)|ATR-Nets(10クラス)|ATR-Nets(20クラス)|
-|:---:|:---:|:---:|:---:|:---:|:---:|
-|平均(分散)|0.0165(0.0184)|***0.0125(0.0171)***|***0.0105(0.0174)***|***0.0124(0.0174)***|***0.0109(0.0172)***|
-
-***
-- 分散が大きくなるようなデータを作成できていないので、truncate が意味を持っていない
-- ATR-Netsは階層数を増やしても予測精度に変化がない(他のモデルは3階層よりも5階層の方が圧倒的に良い結果)
 
 
 
