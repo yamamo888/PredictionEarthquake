@@ -1,7 +1,7 @@
 # Tensorflow を用いた Baseline Regression とAnchor-based Regression と提案法 ATR-Nets の実装
 
 この `README.md` には、各コードの実行結果、各コードの説明を記載しています。
-実行ファイルは `trainingModel.py`で、 データ作成は `makingData.py`、 結果の画像作成・出力は `plot.py` で、行っています。`makingData.py` と `plot.py` は、実行ファイルから呼び出されます。
+実行ファイルは `trainingModel.py`で、 toyデータ作成は `makingData.py`、nankaiデータの読み込みは`loadingData.py`、 結果の画像作成・出力は `plot.py` で、行っています。`makingData.py` と `loadingData.py`と`plot.py` は、実行ファイルから呼び出されます。
 
 
 ## 項目 [Contents]
@@ -40,7 +40,6 @@
 
 ### コマンド
 
-
 以下はコマンド引数順と指定できる数字、コード上の名前と役割をまとめた。
 
 |コマンド引数|指定可能数字|名前|役割|
@@ -50,18 +49,17 @@
 |3|10 or 20 or 50|nClass|分類のクラス数|
 |4|2 or 3 or 5|pNum|toyデータの回転数|
 |5|3 or 4 or 5|depth|回帰NNの層数|
-|6|0(square) or 1(abs)|errorMode|回帰の損失関数|
-|7|int|batchSize|バッチサイズ|
-|8|int|nData|toyデータの数指定|
-|9|float|trainRatio|toyデータの割合指定|
-|10|float|alphaMode|alphaの初期値指定|
-|11|0(toy mode) or 1(nanaki mode)|dataMode|toyかnankaiかの実験を選択|
-|12|int|trialID|実験管理ID|
+|6|int|batchSize|バッチサイズ|
+|7|int|nData|toyデータの数指定|
+|8|float|trainRatio|toyデータの割合指定|
+|9|float|alphaMode|alphaの初期値指定|
+|10|0(toy mode) or 1(nanaki mode)|dataMode|toyかnankaiかの実験を選択|
+|11|int|trialID|実験管理ID|
 
 - 実験に必要がない引数も設定する必要あり。
 
-- 例：nankaiでの実験設定 ---> モデルは Anchor-based Regression、クラス数は 10、3 階層回帰NNを使用、平均二乗誤差、バッチサイズは1000、alphaの初期値は10の場合 :
-```python trainingModel.py 1 0.00001 10 5 3 0 1000 1 1 0.1 1 1```
+- 例：nankaiでの実験設定 ---> モデルは Anchor-based Regression、クラス数は 10、3 階層回帰NNを使用、バッチサイズは1000、alphaの初期値は10の場合 :
+```python trainingModel.py 1 0.00001 10 5 3 1000 1 1 0.1 1 1```
 
 <br>
 
@@ -90,6 +88,7 @@ depth = int(sys.argv[5])
 # -----------------------------------------------------------------------------
 ```
 
+***
 
 <a id="ID_1"></a>
 
@@ -152,9 +151,6 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
 	- x1,x2 の回転数 `pNum` と x1、x2の分散 `noise` は、 `trainingModel.py` を実行するときにコマンド引数で指定されたものが渡される。
 	- 目的変数の範囲の最小値 `yMin` と最大値 `yMax` は、2,6。
 
-
-<br>
-
 - 次に、目的変数のラベル付けをする。分類ニューラルネットワークのある Anchor-based Regression と ATR-Netsの時に必要。
 
 
@@ -210,7 +206,12 @@ def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
 
 - らせん階段データ (全データ)
 ![toydata](https://user-images.githubusercontent.com/32571202/63222020-a2372680-c1dc-11e9-81d6-a85fa650ba21.png)
-<br>
+
+***
+
+## nankaiデータの読み込み：`loadingData.py`
+
+
 
 <a id="ID_1-1"></a>
 
