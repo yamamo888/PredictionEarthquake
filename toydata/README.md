@@ -1,7 +1,9 @@
 # Tensorflow を用いた Baseline Regression とAnchor-based Regression と提案法 ATR-Nets の実装
 
-この `README.md` には、各コードの実行結果、各コードの説明を記載しています。
-実行ファイルは `trainingModel.py`で、 toyデータ作成は `makingData.py`、nankaiデータの読み込みは`loadingData.py`、 結果の画像作成・出力は `plot.py` で、行っています。`makingData.py` と `loadingData.py`と`plot.py` は、実行ファイルから呼び出されます。
+この `README.md` には、各コードの実行結果、各コードの説明を記載しています。<br>
+実行ファイルは `trainingModel.py`で、 toyデータ作成は `makingData.py`、nankaiデータの読み込みは`loadingData.py`、 結果の画像作成・出力は `plot.py` で、行っています。`makingData.py` と `loadingData.py`と`plot.py` は、実行ファイルから呼び出されます。<br>
+以下、nankaiと表記する場合は、南海トラフシミュレーションデータを示す。<br>
+
 
 
 ## 項目 [Contents]
@@ -14,17 +16,21 @@
 	2. [らせん階段の例(コードの実行結果)](#ID_1-2)
 
 2. [nankaiデータの読み込み：`loadingData.py`](#ID_2)
+	1. [学習・テストデータ](#ID_2-1)
+	2. [評価データ：南海履歴データ](#ID_2-2)
+
 
 3. [各手法のGraph作成 (tensorflow上) : `trainingMdel.py`](#ID_3)
-	1. [パラメータ](#ID_3-1-1)
-	2. [分類NNと回帰NN](#ID_3-1-2)
-	3. [Anchor-based regressionとATR-Netsの回帰NNで使用する入力と出力の作成](#ID_3-1-3)
-	4. [ATR-Netsの工夫点](#ID_3-1-4)
-	5. [誤差関数・最適化](#ID_3-1-5)
-	6. [関数の呼び出し](#ID_3-1-6)
+	1. [パラメータ](#ID_3-1)
+	2. [データの準備](#ID_3-2)
+	3. [分類NNと回帰NN](#ID_3-3)
+	4. [Anchor-based regressionとATR-Netsの回帰NNで使用する入力と出力の作成](#ID_3-4)
+	5. [ATR-Netsの工夫点](#ID_3-5)
+	6. [誤差関数・最適化](#ID_3-6)
+	7. [関数の呼び出し](#ID_3-7)
 
 4. [各手法のGraph実行 (python上) : `trainingMdel.py`](#ID_4)
-	1. [ミニバッチ(学習データ) : `makingData.py`](#ID_4-1)
+	1. [ミニバッチ(学習データ) : `makingData.py`と`loadingData.py`](#ID_4-1)
 	2. [Baseline Regression](#ID_4-2)
 	3. [Anchor-based regression](#ID_4-3)
 	4. [ATR-Nets](#ID_4-4)
@@ -69,23 +75,36 @@
 - 説明変数の回転数 `pNum`は 2か3か5ぐらいがおすすめ (1だと不定問題が起こらない、5以上は不定問題が起こりすぎるため)
 - 回帰NNの層数 `depth`は 3,4,5
 
-<br>
 
 - コード上の変数とコマンド引数
 
 ```python:trainingModel.py
-# -------------------------- command arugment ----------------------------------
+# -------------------------- command argment ----------------------------------
 # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets
 methodModel = int(sys.argv[1])
 # noize of x1, x2
-sigma = np.float(sys.argv[2])
+sigma = float(sys.argv[2])
 # number of class
+# nankai nClass = 11 or 21 or 51
 nClass = int(sys.argv[3])
 # number of rotation -> sin(pNum*pi) & cos(pNum*pi)
 pNum = int(sys.argv[4])
 # number of layer for Regression NN
 depth = int(sys.argv[5])
+# batch size
+batchSize = int(sys.argv[6])
+# data size
+nData = int(sys.argv[7])
+# rate of training
+trainRatio = float(sys.argv[8])
+# alpha
+alphaMode = float(sys.argv[9])
+# 0: toydata var., 1: nankai var.
+dataMode = int(sys.argv[10])
+# trial ID
+trialID = sys.argv[11]
 # -----------------------------------------------------------------------------
+
 ```
 
 ***
@@ -122,7 +141,6 @@ nTest = int(nData - nTrain)
 batchRandInd = np.random.permutation(nTrain)
 ```
 
-<br>
 
 ```python:makingData.py
 def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
@@ -157,9 +175,6 @@ def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
 ```python:makingData.py
 def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
     ...
-
-    
-    
     flag = False
     for nInd in np.arange(target.shape[0]):
         tmpY = target[nInd]
@@ -209,11 +224,76 @@ def AnotationY(yMin=2,yMax=6,yClass=10,nClass=10,beta=1):
 
 ***
 
+<a id="ID_2"></a>
+
 ## nankaiデータの読み込み：`loadingData.py`
 
+<a id="ID_2-1"></a>
+
+### 学習・テストデータ
+
+- `namesInds`で読み取る学習pklデータが格納されたファイルを3つ指定、テストpklデータは常に同じファイルが読み込まれる
+- `filePeriod`で読み取るファイルを変更するタイミングを指定
+
+```python:loadingData.py
+def loadTrainTestData(self,nameInds=[0,1,2,3,4]):
+    # name of train pickles
+    trainNames = ["b2b3b4b5b6_train{}{}".format(num,self.nClass) for num in np.arange(1,8)]
+    # name of test pickles
+    testNames = ["b2b3b4b5b6_test1{}".format(self.nClass)]
+```
+
+```python:trainingModel.py
+  if dataMode == 1:
+        if i % filePeriod == 0:
+            nameInds = random.sample(nametrInds,3) 
+            myData.loadTrainTestData(nameInds=nameInds)
+```
+
+- 以下はテストデータの準備
+- 
+
+```python:loadingData.py
+ #[number of data,]
+self.xTest = self.xTest[:,1:6,:]
+self.xTest = np.reshape(self.xTest,[-1,self.nCell*self.nWindow])
+# test y
+self.yTest = np.concatenate((self.y11Test[:,np.newaxis],self.y31Test[:,np.newaxis],self.y51Test[:,np.newaxis]),1)
+# test label y
+self.yTestLabel = np.concatenate((self.y11TestLabel[:,:,np.newaxis],self.y31TestLabel[:,:,np.newaxis],self.y51TestLabel[:,:,np.newaxis]),2)
+```
+
+***
+<a id="ID_2-2"></a>
+
+### 評価データ：南海履歴データ
+
+```python:loadingData.py
+def loadNankaiRireki(self):
+        
+    # nankai rireki path (slip velocity V)
+    # nankaifeatue.pkl -> 190.pkl
+    flag = False
+    for fID in np.arange(256):
+
+       nankairirekiPath = os.path.join(self.features,self.nankairireki,"{}_2.pkl".format(fID))
+        
+       with open(nankairirekiPath,"rb") as fp:
+           x = pickle.load(fp)
+	   if not flag:
+               evalX = x
+               flag = True
+           else:
+               evalX = np.vstack([evalX,x])
+
+    self.evalX = evalX
+```
 
 
-<a id="ID_1-1"></a>
+
+***
+
+<a id="ID_3"></a>
 
 ## 各手法による予測処理: `trainingModel.py`
 
@@ -229,15 +309,53 @@ Baseline Regression は、回帰ニューラルネットワーク (NN)であり�
 
 ![atr-nets](https://user-images.githubusercontent.com/32571202/63222015-9a778200-c1dc-11e9-9aff-9a7460e21dd0.png)
 
+***
 
-<br>
-
-<a id="ID_2-1-1"></a>
+<a id="ID_3-1"></a>
 
 ### パラメータ
 
-- 分類NNと回帰NNの各種ノードの次元数
+- nankaiで使うパラメータ。<br>
+	- nCell: 入力のセル数
+	- nWindow: スライディングウィンドウのウィンドウ数
+	- nkMax,nkMin: 南海領域の摩擦パラメータbの最小最大
+	- tkMax,tkMin: 東南海、東海の摩擦パラメータbの最小最大
+	- first_cls_center_nk: 分類NNで使う
+	- nameInds: namesIndsをシャッフルして3つ選択、trainデータが入ってるデータを選択
+	- filePeriod: nankaiのファイルをシャッフルするタイミングを決定
 
+```python:trainingModel.py
+# number of nankai cell(input)
+nCell = 5
+# number of sliding window
+nWindow = 10
+...
+# maximum of nankai
+nkMax = 0.0125
+# minimum of nankai
+nkMin = 0.017
+# maximum of tonankai & tokai
+tkMax = 0.012
+# minimum of tonankai & tokai
+tkMin = 0.0165
+...
+# Center variable of the first class in nankai
+first_cls_center_nk = np.round(nkMin + (beta / 2),limitdecimal)
+# Center variable of the first class in tonankai & tokai
+first_cls_center_tk = np.round(tkMin + (beta / 2),limitdecimal)
+...
+# select nankai data(3/5) 
+nametrInds = [0,1,2,3,4,5,6]
+# random sample loading train data
+nameInds = random.sample(nametrInds,3) 
+...
+# nankai file change timing
+filePeriod = nTraining / 10
+```
+
+- toyとnankaiで共通のパラメータ
+	- 分類NNと回帰NNの各種ノードの次元数
+	- isSaveModel: モデルを保存するときTrue
 
 ```python:trainingModel.py
 dInput = 2
@@ -261,65 +379,108 @@ nRegHidden2 = 128
 nRegHidden3 = 128
 # node of 4 hidden
 nRegHidden4 = 128
-```
-
-- 目的変数の範囲 U(yMin,yMax)とクラス分割数 `beta` と　初めのクラスの中心値 `first_cls_center`
-
-```python:trainingModel.py
-# round decimal 
-limitdecimal = 3
-# maximum of target variables
-yMax = 6
-# miinimum of target variables
-yMin = 2
-# Width class
-beta = np.round((yMax - yMin) / nClass,limitdecimal)
-# Center variable of the first class
-first_cls_center = np.round(yMin + (beta / 2),limitdecimal)
-```
-
-- 学習率 `lr` とバッチサイズ `batchSize` とバッチの初期化 `batchCnt` (makingData.py用)
-- ATR-Netsの時 `methodModel == 2` は `isATR = True`　それ以外は、`isATR = False`
-
-
-```python:trainingModel.py
+...
+# dropout
+keepProbTrain = 1.0
 # Learning rate
-lr = 1e-4
-# number of training
-nTraining = 500
-# batch size
-batchSize = 100
-# batch count initializer
-batchCnt = 0
+lr = 1e-3
 # test count
 testPeriod = 500
 # if plot == True
 isPlot = True
-
-if methodModel == 2:
-    isATR = True
-else:
-    isATR = False
+# if save model == True
+isSaveModel = True
 
 ```
 
-<br>
+-toyとnankaiで異なるパラメータ
+	- trainAlpha: alphaを学習するときTrue
 
-- `makingData.py`から説明変数と目的変数(学習とテストの両方)とを受け取り、説明変数の x は x1,x2 を concat して2次元のデータにする。
+```python:trainingModel.py
+# Toy
+if dataMode == 0:
+    print(pNum)
+    
+    dInput = 2
+    dOutput = 1
+    # round decimal 
+    limitdecimal = 3
+    # Width class
+    beta = np.round((yMax - yMin) / nClass,limitdecimal)
+    dataName = f"toy_{trialID}"
+    nTraining = 50000
+    # not training alpha
+    trainAlpha = True
+# Nankai
+else:
+    dInput = nCell*nWindow
+    dOutput = 3
+    # round decimal 
+    limitdecimal = 6
+    # Width class
+    beta = np.round((nkMax - nkMin) / nClass,limitdecimal)
+    dataName = f"nankai_{trialID}"
+    nTraining = 100000
+    # not training alpha
+    trainAlpha = False
+```
+
+***
+
+<a id="ID_3-2"></a>
+
+### データの準備
+
+
+- `makingData.py`の`toyData`でtoyデータ作成・読み込み
+- `loadingData.py`の`NankaiData`nankaiデータ読みこみ
+	- `loadNankaiRireki()`は南海履歴データを読み込む関数
 
 ```python:trainingData.py
 # --------------------------- data --------------------------------------------
-# Get train & test data, shape=[number of data, dimention]
-x1Train, x2Train, yTrain, x1Test, x2Test, yTest, y = myData.SplitTrainTest()
-# Get anotation y
-yTrainlabel, yTestlabel, yMin, yMax = myData.AnotationY()
-# x = x1 + x2 shape=[num of data, 2(dim)] 
-xTrain = np.concatenate([x1Train,x2Train], 1)
-xTest = np.concatenate([x1Test,x2Test], 1)
-# -----------------------------------------------------------------------------
+# select toydata or nankaidata
+if dataMode == 0:    
+    myData = makingData.toyData(trainRatio=trainRatio, nData=nData, pNum=pNum, sigma=sigma)
+    myData.createData(trialID,beta=beta)
+else:
+    myData = loadingNankai.NankaiData(nCell=nCell,nClass=nClass,nWindow=nWindow)
+    myData.loadTrainTestData(nameInds=nameInds)
+    #myData.loadNankaiRireki()
+    if nClass == 10:
+        nClass = 11
+    elif nClass == 20:
+        nClass = 21
+    else:
+        nClass =  51
 ``` 
 
-<br>
+***
+
+<a id="ID_3-3"></a>
+
+### 分類NNと回帰NN
+
+
+- placeholder
+
+```python:trainingModel.py
+#------------------------- placeholder ----------------------------------------
+# input of placeholder for classification
+x_cls = tf.placeholder(tf.float32,shape=[None,dInput])
+# input of placeholder for regression
+x_reg = tf.placeholder(tf.float32,shape=[None,dInput])
+x_reg_test = tf.placeholder(tf.float32,shape=[None,dInput])
+# GT output of placeholder (target)
+y = tf.placeholder(tf.float32,shape=[None,dOutput])
+alpha_base = tf.placeholder(tf.float32)
+
+if dataMode == 0:
+    # GT output of label
+    y_label = tf.placeholder(tf.int32,shape=[None,nClass])
+else:
+    y_label = tf.placeholder(tf.int32,shape=[None,nClass,dOutput])
+```
+
 
 - 重み(`weight_variable`)とバイアス(`bias_variable`)、sigmoid関数のalpha変数(`alpha_variable`)を定義する。`alpha` の初期値 `alphaInit` は平均 `mean` と分散 `stddev` を指定する必要あり。
 
@@ -371,12 +532,6 @@ def fc(inputs,w,b,keepProb):
      return fc
 #-----------------------------------------------------------------------------#
 ```
-
-<br>
-
-<a id="ID_2-1-2"></a>
-
-### 分類NNと回帰NN
 
 - 分類NN
 
@@ -491,19 +646,22 @@ def Regress(x_reg,reuse=False,isATR=False,depth=0):
             else:
                 return fc(h3,w4_reg,bias4_reg,keepProb)
 ```
-<br>
+
+- 回帰NNと同様の構造で、入力がresidualの残差回帰NN関数(割愛)。
+
+```python:trainingModel.py
+def ResidualRegress(x_reg,reuse=False,isATR=False,depth=0,keepProb=1.0):
+...
+```
 
 - 引数
 	- isATR: ATR-Netsの時は True、その他の手法は False
 	- depth: 階層を指定　例えば depth=3 のときは 3 階層モデル 現在は 3,4,5 階層モデルに対応
 	- テスト時は reuse=True にして、重みとバイアスを共有する。
 
-<br>
+***
 
-
-
-<a id="ID_2-1-3"></a>
-
+<a id="ID_3-4"></a>
 
 ### Anchor-based regressionとATR-Netsの回帰NNで使用する入力と出力の作成
 
@@ -512,47 +670,68 @@ def Regress(x_reg,reuse=False,isATR=False,depth=0):
 - 回帰NNの出力の真値
 	- 残差 (目的変数 - クラスの中心値 `pred_cls_center` )
 
+- nankaiのときは領域によって、刻み開始数値が異なる。南海は`first_cls_center_nk`、東南海・東海は`first_cls_center_tk`
+- 南海履歴データを使う時は、真値yがなくresidualの計算ができないので、分岐させている
+
 ```python:trainingModel.py
-def CreateRegInputOutput(x,y,cls_score):
+def CreateRegInputOutput(x,y,cls_score,isEval=False):
     ...
     
-    # Max class of predicted class
-    pred_maxcls = tf.expand_dims(tf.cast(tf.argmax(cls_score,axis=1),tf.float32),1)  
-    # Center variable of class        
-    pred_cls_center = pred_maxcls * beta + first_cls_center
-    # regression input = feature vector + center variable of class
-    cls_center_x =  tf.concat((pred_cls_center,x),axis=1)
-    # residual = objective - center variavle of class 
-    r = y - pred_cls_center
+     if dataMode == 0:
+
+        # Max class of predicted class
+        pred_maxcls = tf.expand_dims(tf.cast(tf.argmax(cls_score,axis=1),tf.float32),1)  
+        # Center variable of class        
+        pred_cls_center = pred_maxcls * beta + first_cls_center
     
-    return pred_cls_center, r, cls_center_x
-#-----------------------------------------------------------------------------#
+    else:
+        # Max class of predicted class
+        pred_maxcls1 = tf.expand_dims(tf.cast(tf.argmax(cls_score[:,:,0],axis=1),tf.float32),1)  
+        # Max class of predicted class
+        pred_maxcls2 = tf.expand_dims(tf.cast(tf.argmax(cls_score[:,:,1],axis=1),tf.float32),1)  
+        # Max class of predicted class
+        pred_maxcls3 = tf.expand_dims(tf.cast(tf.argmax(cls_score[:,:,2],axis=1),tf.float32),1)
+
+        # Center variable of class for nankai       
+        pred_cls_center1 = pred_maxcls1 * beta + first_cls_center_nk
+        # Center variable of class for tonaki        
+        pred_cls_center2 = pred_maxcls2 * beta + first_cls_center_tk
+        # Center variable of class for tokai       
+        pred_cls_center3 = pred_maxcls3 * beta + first_cls_center_tk
+        # [number of data, cell(=3)] 
+        pred_cls_center = tf.concat((pred_cls_center1,pred_cls_center2,pred_cls_center3),1)
+    
+    
+    if isEval:
+        return pred_cls_center, cls_center_x
+    else:
+        
+        # residual = objective - center variavle of class 
+        r = y - pred_cls_center
+        # feature vector + center variable of class
+        cls_center_x =  tf.concat((pred_cls_center,x),axis=1)
+        
+        return pred_cls_center, r, cls_center_x
 ```
 
 - 引数
 	- x: 説明変数 x = x1 + x2
 	- y: 目的変数
 	- cls_score: クラス確率 (`Classify` の出力)
+	- isEval: 南海履歴データを用いるとき True
 
 
-<br>
-
-<a id="ID_2-1-4"></a>
+***
+<a id="ID_3-5"></a>
 
 ### ATR-Netsの工夫点
 
 - 残差の範囲を **sigmoid関数** を用いて、[0,1] にエンコードする
 - sigmoid関数の傾き `alpha` は学習して最適化する
-- 残差とエンコードされた残差との関係式： <bf>
-> ![rat](/results/rat.png)
-
-
-> ![rat](https://user-images.githubusercontent.com/32571202/63222018-a06d6300-c1dc-11e9-8c4d-90080b9ddcb7.png)
-
-
+- 残差とエンコードされた残差との関係式： (未定) <bf>
 
 ```python:trainingModel.py
-def TruncatedResidual(r,reuse=False):
+def TruncatedResidual(r,alpha_base,reuse=False):
     ...
     with tf.variable_scope('TrResidual') as scope:  
         if reuse:
@@ -562,64 +741,69 @@ def TruncatedResidual(r,reuse=False):
         # trauncated range of residual
         r_at = 1/(1 + tf.exp(- alpha * r))
         
-        return r_at, alpha
+        return r_at, alphawith tf.variable_scope('TrResidual') as scope:  
+        if reuse:
+            scope.reuse_variables()
+        
+        alpha = alpha_variable("alpha",[dOutput]) 
+        alpha_final = tf.multiply(alpha,alpha_base)
+        
+        if trainAlpha:
+            r_at = 1/(1 + tf.exp(- alpha_final * r))
+            return r_at, alpha_final
+        else:
+            r_at = 1/(1 + tf.exp(- alpha * r))
+            return r_at, alpha
 #-----------------------------------------------------------------------------#
 ```
 
-
 - 引数
 	- r: 真の残差
-
-<br>
-
-- 残差とエンコードされた残差の関係図 
-
-![atr](https://user-images.githubusercontent.com/32571202/63222009-977c9180-c1dc-11e9-8769-4be10de7125e.png)
-
-<br>
+	- alpha_base:
 
 - エンコードされた残差をもとの範囲の残差に戻す 
-- 式：<bf>
-> ![r](https://user-images.githubusercontent.com/32571202/63222017-9ea39f80-c1dc-11e9-81ce-c677f5c1b1f7.png)
-
-
+- 式： (未定) <bf>
 
 ```python:trainingModel.py
-def Reduce(r_at,alpha,reuse=False):
+def Reduce(r_at,param,reuse=False):
     ...
-    with tf.variable_scope('TrResidual') as scope:  
+   with tf.variable_scope('TrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
-        # reduce residual
-        pred_r = (-1/r_at) * tf.log((1/alpha) - 1)
+
+        #pred_r = (-1/param) * tf.log((1/r_at) - 1)
+        pred_r = 1/param * tf.log(r_at/(1-r_at + 1e-8))
         
         return pred_r
 #-----------------------------------------------------------------------------# 
-
 ```
 
 - 引数
 	- r_at: エンコードされた残差
-	- alpha: sigmoid関数の傾き
+	- param: sigmoid関数の傾き
 
-<br>
 
-<a id="ID_2-1-5"></a>
+***
+<a id="ID_3-6"></a>
 
 ### 損失関数・最適化
 
 - 分類NNはクロスエントロピー誤差で、回帰NNとalphaを学習するときは絶対平均誤差
 - **1つの学習器を学習するときは他の学習器を frozenする。そのため、name_scopeで学習する学習器を指定する必要あり。例えば、分類NNを学習するときは、他の回帰NN学習器とalpha学習器を学習しない (`name_scope="Regress"` を指定)**
 
-
 ```python:trainingModel.py
 def Loss(y,predict,isCE=False):
     ...
-    if isCE:
-        return tf.losses.softmax_cross_entropy(y,predict)
+   if isCE:
+        if dataMode == 0:
+            return tf.losses.softmax_cross_entropy(y,predict)
+        else:
+            return tf.losses.softmax_cross_entropy(y[:,:,0],predict[:,:,0]) + tf.losses.softmax_cross_entropy(y[:,:,1],predict[:,:,1]) + tf.losses.softmax_cross_entropy(y[:,:,2],predict[:,:,2])
     else:
-        return tf.reduce_mean(tf.abs(y - predict))
-#-----------------------------------------------------------------------------#
+        return tf.reduce_mean(tf.square(y - predict))
+```
+
+```python:trainingModel.py
 def Optimizer(loss,name_scope="Regress"):
     ...
     Vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope=name_scope) 
@@ -632,18 +816,18 @@ def Optimizer(loss,name_scope="Regress"):
 	- isCE: 回帰NNとalpha学習する時は False、分類NNの時は True (default)
 	- name_scope: 回帰NNの時は Regress (default)、分類NNの時は Classify、alpha学習するときは TrResidual を指定　
 
-<br>
-
-
-<a id="ID_2-1-6"></a>
+***
+<a id="ID_3-7"></a>
 
 ### 関数の呼び出し
 
 - 分類NN
+	- 南海履歴データを使う時は`cls_op_eval`のコメントアウトを外す
 
 ```python:trainingModel.py
     cls_op = Classify(x_cls)
     cls_op_test = Classify(x_cls,reuse=True)
+    #cls_op_eval = Classify(x_cls,reuse=True,keepProb=1.0)
 ```
 
 - Anchor-based regressionとATR-Netsの回帰NNでは、説明変数 x とクラスの中心値 `pred_cls_center` を concatした`reg_in` を入力とし、残差 (目的変数 - クラスの中心値 ) `res` を出力の真値にする。
@@ -654,48 +838,62 @@ def Optimizer(loss,name_scope="Regress"):
     pred_cls_center_test, res_test, reg_in_test = CreateRegInputOutput(x_cls,cls_op_test)
 ```
 
-- 回帰NN
-	- Baseline regression の入力は説明変数 `x_reg`、Anchor-based regressionとATR-Netsの入力は説明変数 x とクラスの中心値 `reg_in`する (sess.runで)
+- 回帰NNと残差回帰NN
+	- Baseline regression の入力は説明変数 `x_reg`、Anchor-based regressionとATR-Netsの入力は説明変数 x とクラスの中心値 `reg_in`する 
 	- Baseline regressionとAnchor-based regressionの時 `isATR`は False、ATR-Netsの時 True (出力層の活性化関数をsigmoidにするため)
 
 ```python:trainingModel.py
-reg_op = Regress(x_reg,isATR=isATR,depth=depth)
-reg_op_test = Regress(x_reg,reuse=True,isATR=isATR,depth=depth)
-    
+reg_res = ResidualRegress(reg_in,isATR=isATR,depth=depth,keepProb=keepProbTrain)
+reg_res_test = ResidualRegress(reg_in_test,reuse=True,isATR=isATR,depth=depth,keepProb=1.0)
+#reg_res_eval = ResidualRegress(reg_in_eval,reuse=True,isATR=isATR,depth=depth,keepProb=1.0)
+
+reg_y = Regress(x_reg,isATR=isATR,depth=depth,keepProb=keepProbTrain)
+reg_y_test = Regress(x_reg_test,reuse=True,isATR=isATR,depth=depth,keepProb=1.0)
+#reg_y_eval = Regress(x_reg_eval,reuse=True,isATR=isATR,depth=depth,keepProb=1.0)
 ```    
+
+- L1とL2損失(今はコメントアウト)
+	- どのdepth数でも共通でパスが通るように、`w1_reg` と `w2_reg` しか取り出してない
+
+```python:trainingModel.py
+#res_l1 = tf.reduce_sum(tf.abs(ResidualRegress.w1_reg)) + tf.reduce_sum(tf.abs(ResidualRegress.w2_reg))
+#reg_l1 = tf.reduce_sum(tf.abs(Regress.w1_reg)) + tf.reduce_sum(tf.abs(Regress.w2_reg))
+
+# l2
+#res_l2 = tf.nn.l2_loss(ResidualRegress.w1_reg) + tf.nn.l2_loss(ResidualRegress.w2_reg)
+#reg_l2 = tf.nn.l2_loss(Regress.w1_reg) + tf.nn.l2_loss(Regress.w2_reg)
+```
 
 - Adaptive Truncated residual 
 - 入力は真の残差 `res`、出力は真の拡大された残差 `res_atr` とsigmoid関数の傾き `alpha_op`
 
-
 ```python:trainingModel.py
-res_atr, alpha_op = TruncatedResidual(res)
-res_atr_test, alpha_op_test = TruncatedResidual(res_test,reuse=True)
+res_atr, alpha = TruncatedResidual(res,alpha_base)
+res_atr_test, alpha_test = TruncatedResidual(res_test,alpha_base,reuse=True)
 ```
+
 - Reduce residual
 - 入力は予測した拡大残差 `res_op`とsigmoid関数の傾き `alpha_op`、出力は元に戻した残差 `reduce_res`
 - TruncatedResidual()内で定義されたalphaを使用するので、学習・テスト両方とも `reuse=True`
 
 ```python:trainingModel.py
-reduce_res = Reduce(reg_op,alpha_op,reuse=True)
-reduce_res_test = Reduce(reg_op_test,alpha_op_test,reuse=True)
+reduce_res_op = Reduce(reg_res,alpha,reuse=True)
+reduce_res_op_test = Reduce(reg_res_test,alpha_test,reuse=True)
 ```
-<br>
 
 - 予測した目的変数 `pred_y` = クラスの中心値 `pred_cls_center` + 元に戻した残差 `reduce_res_op`
-
 
 ```python:trainingModel.py
 # predicted y by ATR-Nets
 pred_y = pred_cls_center + reduce_res_op
 pred_y_test = pred_cls_center_test + reduce_res_op_test
 ```
-<br>
 
 - 誤差関数
 	- Baseline Regressionは `loss_reg`、Anchor-based regressionは `loss_cls`と`loss_anc`、ATR-Netsは`loss_cls`と`loss_atr`と`loss_alpha`
 	- `loss_cls`は `isCE=True`
 	- `loss_cls`はクラスのラベル、 `loss_reg`は目的変数、`loss_anc`は残差、`loss_atr`はエンコードされた残差が真値である。`loss_cls`は分類NNの出力 `cls_op`で`loss_reg`、`loss_anc`、`loss_atr`は回帰NNの出力 `reg_op` を使用する。
+	- l1とl2損失を実装したいときは上記の`reg_l1`、`res_l1`、`reg_l2`、`res_l2`を誤差関数に付け足す。
 
 
 ```python:trainingModel.py
@@ -745,21 +943,16 @@ trainer_atr = Optimizer(loss_atr)
 # for alpha training in atr-nets
 trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 ```
-<br>
 
-<a id="ID_3"></a>
-
+***
+<a id="ID_4"></a>
 
 ## 各手法のGraph実行 (python上) : `trainingMdel.py`
 ミニバッチデータ取得、学習フェーズ実行、テストフェーズ実行の3つの段階に大きく分けられる。
 
-<br>
+<a id="ID_4-1"></a>
 
-
-
-<a id="ID_3-1"></a>
-
-### ミニバッチ : `makingData.py`
+### ミニバッチ : `makingData.py`と`loadingData.py`
 
 ```python:makingData.py
 
@@ -787,17 +980,49 @@ def nextBatch(Otr,Ttr,Tlabel,batchSize,batchCnt = 0):
 	- batchSize: バッチサイズ
 	- batchCnt: バッチカウントの初期化 (`trainingModel.py`で行う)
 	
-
-
 - ミニバッチ関数を呼ぶ
 ```python:trainingModel.py
 # Get mini-batch
 batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel,batchSize,batchCnt = 0)
 ```
 
-<br>
+- 以下、nankaiのデータ読み込み
+	- 真値yも5つ(`*1*Train`,`*2*Train`,`*3*Train`,`*4*Train`,`*5*Train`)あるうちから、3つ(`*1*Train`,`*3*Train`,`*5*Train`)を選択
 
-<a id="ID_3-2"></a>
+```python:loadingData.py
+def nextBatch(self,batchSize):
+        
+        sInd = batchSize * self.batchCnt
+        eInd = sInd + batchSize
+       
+        # [number of data, cell(=5,nankai2 & tonakai2 & tokai1), dimention of features(=10)]
+        trX = np.concatenate((self.x11Train[:,1:6,:],self.x12Train[:,1:6,:],self.x13Train[:,1:6,:]),0) 
+        # mini-batch, [number of data, cell(=5)*dimention of features(=10)]
+        batchX = np.reshape(trX[sInd:eInd],[-1,self.nCell*self.nWindow])
+        # test all targets
+        trY1 = np.concatenate((self.y11Train,self.y12Train,self.y13Train),0)
+        trY2 = np.concatenate((self.y31Train,self.y32Train,self.y33Train),0)
+        trY3 = np.concatenate((self.y51Train,self.y52Train,self.y53Train),0)
+        # [number of data(mini-batch), cell(=3)] 
+        batchY = np.concatenate((trY1[sInd:eInd,np.newaxis],trY2[sInd:eInd,np.newaxis],trY3[sInd:eInd,np.newaxis]),1)
+        
+        # train all labels, trlabel1 = nankai
+        trlabel1 = np.concatenate((self.y11TrainLabel,self.y12TrainLabel,self.y13TrainLabel),0)
+        trlabel2 = np.concatenate((self.y31TrainLabel,self.y32TrainLabel,self.y33TrainLabel),0)
+        trlabel3 = np.concatenate((self.y51TrainLabel,self.y52TrainLabel,self.y53TrainLabel),0)
+        # [number of data, number of class(self.nClass), cell(=3)] 
+        batchlabelY = np.concatenate((trlabel1[sInd:eInd,:,np.newaxis],trlabel2[sInd:eInd,:,np.newaxis],trlabel3[sInd:eInd,:,np.newaxis]),2)
+        
+        if eInd + batchSize > self.nTrain:
+            self.batchCnt = 0
+        else:
+            self.batchCnt += 1
+
+        return batchX, batchY, batchlabelY
+```
+
+***
+<a id="ID_4-2"></a>
 
 
 ### Baseline Regression
@@ -811,12 +1036,10 @@ batchX,batchY,batchlabelY = myData.nextBatch(xTrain,yTrain,yTrainlabel,batchSize
             # -------------------- Test ------------------------------------- #
             if i % testPeriod == 0:
                 testPred, testRegLoss = sess.run([reg_op_test, loss_reg_test], feed_dict={x_reg:xTest, y:yTest})
-```        
+```       
 
-<br>
-
-
-<a id="ID_3-3"></a>
+***
+<a id="ID_4-3"></a>
 
 ### Anchor-based
 
@@ -848,12 +1071,8 @@ elif methodModel == 1:
                 trainPred = trainClsCenter + trainResPred
                 testPred = testClsCenter + testResPred     
 ```
-
-
-<br>
-
-
-<a id="ID_3-4"></a>
+***
+<a id="ID_4-4"></a>
         
 ### ATR-Nets
 
@@ -891,25 +1110,39 @@ elif methodModel == 2:
                 testPred = testClsCenter + testRResPred
 ```
 
-<a id="ID_3-5"></a>
+***
+<a id="ID_4-5"></a>
 
 ## モデルの保存
 
+すべてのモデルで、以下のようにモデル保存
 
 ```python:makingData.py
-modelFileName = "model_{}_{}_{}_{}_{}_{}.ckpt".format(methodModel,sigma,nClass,pNum,nTrain,nTest)
-modelPath = "models"
-modelfullPath = os.path.join(modelPath,modelFileName)
-saver.save(sess,modelfullPath)
+if isSaveModel:
+    saver.save(sess,os.path.join(modelPath,savePath,"model_{}_{}_{}_{}.ckpt".format(methodModel,dataName,nClass)),global_step=i)
 ```
 
-<br>
+また、最終的な値はpklデータとして`results\*pickles`に保存
 
+```python:trainingData.py
+with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
+            pickle.dump(batchY,fp)
+            pickle.dump(trainPred,fp)
+            pickle.dump(myData.yTest,fp)
+            pickle.dump(testPred,fp)
+            pickle.dump(trainRegLosses,fp)
+            pickle.dump(trainTotalVar,fp)
+            pickle.dump(testRegLosses,fp)
+            pickle.dump(testTotalVar,fp)
+```
+
+
+***
 <a id="ID_5"></a>
 
 ## 実行結果: `Plot.py`
-真値のtoydataと予測したtoydataがvisualizationディレクトリに、lossはvisualization\lossディレクトリに保存される。
-
-
-
-
+- テストデータの真値のtoyと予測したtoyは、`visualization` に保存
+- lossは、`visualization\loss` に保存
+- テストデータのnankaiの分散は、`visualization\scatter`
+- 保存するファイル名を変えたいときは`savefilePath`を変えてください
+	- ex) savefilePath = "{}_{}_{}_{}_{}_{}_{}".format(dataName,methodModel,nClass,depth,batchSize,testAlpha,trialID)
