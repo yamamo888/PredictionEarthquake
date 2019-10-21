@@ -10,6 +10,7 @@
 
 0. [使い方](#ID_0)
 	1. [コマンド](#ID_0-1)
+	2. [コードの説明](#ID_0-2)
 
 1. [使用するらせん階段データ : `makingData.py`](#ID_1)
 	1. [コードの説明](#ID_1-1)
@@ -48,26 +49,42 @@
 
 以下はコマンド引数順と指定できる数字、コード上の名前と役割をまとめた。
 
+- nankaiの時に指定するコマンド
+
 |コマンド引数|指定可能数字|名前|役割|
 |:----:|:----|:----|:----|
-|1|0(ordinary regression) or 1(anchor-based) or 2(ATR-Nets)|methodModel|手法|
-|2|float|sigma|toyデータのノイズ|
+|1|1(nanaki mode)|dataMode|toyかnankaiかの実験を選択|
+|2|0(ordinary regression) or 1(anchor-based) or 2(ATR-Nets)|methodModel|手法|
 |3|10 or 20 or 50|nClass|分類のクラス数|
-|4|2 or 3 or 5|pNum|toyデータの回転数|
-|5|3 or 4 or 5|depth|回帰NNの層数|
-|6|int|batchSize|バッチサイズ|
-|7|int|nData|toyデータの数指定|
-|8|float|trainRatio|toyデータの割合指定|
-|9|float|alphaMode|alphaの初期値指定|
-|10|0(toy mode) or 1(nanaki mode)|dataMode|toyかnankaiかの実験を選択|
-|11|int|trialID|実験管理ID|
-
-- 実験に必要がない引数も設定する必要あり。
+|4|3 or 4 or 5|depth|回帰NNの層数|
+|5|int|batchSize|バッチサイズ|
+|6|float|alphaMode|alphaの初期値指定|
+|7|int|l1Mode(=1でl1損失が適用される)|l1損失|
+|8|int|l2Mode(=1でl2損失が適用される)|l2損失|
+|9|int|trialID|実験管理ID|
 
 - 例：nankaiでの実験設定 ---> モデルは Anchor-based Regression、クラス数は 10、3 階層回帰NNを使用、バッチサイズは1000、alphaの初期値は10の場合 :
 ```python trainingModel.py 1 0.00001 10 5 3 1000 1 1 0.1 1 1```
 
-<br>
+- toyの時に指定するコマンド
+
+|コマンド引数|指定可能数字|名前|役割|
+|:----:|:----|:----|:----|
+|1|0(toy mode)|dataMode|toyかnankaiかの実験を選択|
+|2|0(ordinary regression) or 1(anchor-based) or 2(ATR-Nets)|methodModel|手法|
+|3|float|sigma|toyデータのノイズ|
+|4|10 or 20 or 50|nClass|分類のクラス数|
+|5|2 or 3 or 5|pNum|toyデータの回転数|
+|6|3 or 4 or 5|depth|回帰NNの層数|
+|7|int|batchSize|バッチサイズ|
+|8|int|nData|toyデータの数指定|
+|9|float|trainRatio|toyデータの割合指定|
+|10|int|l1Mode|l1損失|
+|11|int|l2Mode|l2損失|
+|12|int|trialID|実験管理ID|
+
+
+<a id="ID_0-2"></a>
 
 ### コードの説明
 - モデルの種類設定 `methodModel` は 0 のとき Ordinary Regression、1 のとき Anchor-based Regression、2 のとき ATR-Nets を実行する
