@@ -10,131 +10,140 @@ import pdb
 
 import numpy as np
 
-#----------------------------- paramters --------------------------------------
-# training rate
-trainRatio = 0.8
-# number of data
-nData = 4000
-# number of train data
-#nTrain = int(nData * trainRatio)
-# number of test data
-#nTest = int(nData - nTrain)
+class toyData:
+    def __init__(self, trainRatio=0.8, nData=4000, yMin=2, yMax=6,pNum=5,sigma=0,nClass=10):
+        #----------------------------- paramters --------------------------------------
+        self.trainRatio = trainRatio # training rate
+        self.nData = nData # number of data
+        self.nTrain = int(self.nData * self.trainRatio) # number of train data
+        self.nTest = int(self.nData - self.nTrain) # number of test data
+        self.yMin = yMin
+        self.yMax = yMax
+        self.pNum = pNum #Rotation of explanatory variable x1, x2
+        self.sigma = sigma
+        self.nClass = nClass
 
-nTrain = 3200
-nTest = 800
-    
-# batch random index
-batchRandInd = np.random.permutation(nTrain)
-# -----------------------------------------------------------------------------
+        self.batchCnt = 0
 
-#-----------------------------------------------------------------------------#      
-def SplitTrainTest(yMin=2,yMax=6,pNum=5,noise=0):
+
+        self.dataPath = "trainData"
+    # -----------------------------------------------------------------------------
+
+    #------------------------------------------------------------------------------
     """
     Split data into train data and test data.
-    
-    Args:
-        yMin:
-        yMax:
-        pNum: Rotation of explanatory variable x1, x2
-        noise:
-        nTrain: Number of train data
+
     Returns:
         train,test data
     """
-    
-    
-    # nTrain,nTest:1000,7000 3200,800 500,3500 6400,1600
-    sigma = 0.0000001
-    pNum = 2
-    dataPath = "trainData"
-    toydataPath = "toyData_{}_{}_{}_{}.pickle".format(sigma,pNum,nTrain,nTest)
-    toyDatafullPath = os.path.join(dataPath,toydataPath)
-    with open(toyDatafullPath,"rb") as fp:
-        x1Train = pickle.load(fp)
-        x2Train = pickle.load(fp)
-        yTrain = pickle.load(fp)
-        x1Test = pickle.load(fp)
-        x2Test = pickle.load(fp)
-        yTest = pickle.load(fp)
-        y = pickle.load(fp)
-    
-    """
-    # Make target variable, y ~ U(x) U: i.i.d.
-    y = np.random.uniform(yMin,yMax,nData)
-    x1 = np.sin(pNum * y) + 1 / np.log(y) + noise
-    x2 = np.cos(pNum * y) + np.log(y) + noise
-    
-    # split all data to train & test data
-    x1Train = x1[:nTrain][:,np.newaxis]
-    x2Train = x2[:nTrain][:,np.newaxis]
-    yTrain = y[:nTrain][:,np.newaxis]
-    x1Test = x1[nTrain:][:,np.newaxis]
-    x2Test = x2[nTrain:][:,np.newaxis]
-    yTest = y[nTrain:][:,np.newaxis]
-    """
-    # shape=[number of data, dimention]
-    return x1Train, x2Train, yTrain, x1Test, x2Test, yTest, y
-#-----------------------------------------------------------------------------#      
-def AnotationY(target,yMin=2,yMax=6,nClass=10,beta=1):
-    """
-    Anotate target variables y.
-    """
-    
-    # class
-    yClass = np.arange(yMin,yMax + beta, beta) 
- 
-    flag = False
-    for nInd in np.arange(target.shape[0]):
-        tmpY = target[nInd]
-        oneHot = np.zeros(len(yClass))
-        ind = 0
-        # (最小、最大]
-        for threY in yClass:
-            if (tmpY > threY) & (tmpY <= threY + beta):
-                      oneHot[ind] = 1            
-            ind += 1
-        # 最小値は0番目のクラスにする
-        if target[nInd] == yMin:
-            oneHot[0] = 1
-        # 最大値が一番最後のクラスにラベルされるのを戻す
-        if target[nInd] == yMax:
-            oneHot[-2] = 1
-        
-        tmpY = oneHot[np.newaxis] 
-              
-        if not flag:
-            Ylabel = tmpY
-            flag = True
+    def createData(self, trialID=1, beta=1):
+        toydataPath = "toyData_{}_{}_{}_{}_{}.pickle".format(self.sigma,self.pNum,self.nTrain,self.nTest,trialID)
+        toyDatafullPath = os.path.join(self.dataPath,toydataPath)
+
+        # reading data from pickle
+        if os.path.exists(toyDatafullPath):     
+            with open(toyDatafullPath,"rb") as fp:
+                self.x1Train = pickle.load(fp)
+                self.x2Train = pickle.load(fp)
+                self.yTrain = pickle.load(fp)
+                self.x1Test = pickle.load(fp)
+                self.x2Test = pickle.load(fp)
+                self.yTest = pickle.load(fp)
+                self.yAll= pickle.load(fp)
+                self.batchRandInd = pickle.load(fp)
         else:
-            Ylabel = np.vstack([Ylabel,tmpY])
+            # Make target variable, y ~ U(x) U: i.i.d.
+            self.yAll = np.random.uniform(self.yMin,self.yMax,self.nData) 
+            #x1 = np.sin(self.pNum * self.yAll) + 1 / np.log(self.yAll) + np.random.normal(scale=self.sigma)
+            #x2 = np.cos(self.pNum * self.yAll) + np.log(self.yAll) + np.random.normal(scale=self.sigma)
+            x1 = np.sin(self.pNum * self.yAll) + np.random.normal(scale=self.sigma)
+            x2 = np.cos(self.pNum * self.yAll) + np.random.normal(scale=self.sigma)
             
-    # 値が入っていないクラスを削除
-    if len(yClass) == nClass + 1:
-        Ylabel = Ylabel[:,:-1]
-    
-    YTrainlabel = Ylabel[:nTrain]
-    YTestlabel = Ylabel[nTrain:]
-    
-    # shape=[number of data, number of class]
-    return YTrainlabel, YTestlabel
-#-----------------------------------------------------------------------------#
-def nextBatch(Otr,Ttr,Tlabel,batchSize,batchCnt=0):
-    """
-    Make Mini Batch.
-    """
-    
-    sInd = batchSize * batchCnt
-    eInd = sInd + batchSize
-    
-    batchX = Otr[batchRandInd[sInd:eInd],:]
-    batchY = Ttr[batchRandInd[sInd:eInd],:]
-    batchlabelY = Tlabel[batchRandInd[sInd:eInd],:]
-    
-    if eInd + batchSize > nTrain:
-        batchCnt = 0
-    else:
-        batchCnt += 1
-    # [batchSize,number of dimention]
-    return batchX,batchY,batchlabelY
-#-----------------------------------------------------------------------------#
-    
+            # split all data to train & test data
+            self.x1Train = x1[:self.nTrain][:,np.newaxis]
+            self.x2Train = x2[:self.nTrain][:,np.newaxis]
+            self.yTrain = self.yAll[:self.nTrain][:,np.newaxis]
+            self.x1Test = x1[self.nTrain:][:,np.newaxis]
+            self.x2Test = x2[self.nTrain:][:,np.newaxis]
+            self.yTest = self.yAll[self.nTrain:][:,np.newaxis]
+
+            # batch random index
+            self.batchRandInd = np.random.permutation(self.nTrain)
+
+            with open(toyDatafullPath,"wb") as fp:
+                pickle.dump(self.x1Train,fp)
+                pickle.dump(self.x2Train,fp)
+                pickle.dump(self.yTrain,fp)
+                pickle.dump(self.x1Test,fp)
+                pickle.dump(self.x2Test,fp)
+                pickle.dump(self.yTest,fp)
+                pickle.dump(self.yAll,fp)
+                pickle.dump(self.batchRandInd,fp)
+
+
+        self.xTrain = np.concatenate([self.x1Train,self.x2Train],1)
+        self.xTest = np.concatenate([self.x1Test,self.x2Test],1)
+
+
+        self.annotate(beta)
+    #-----------------------------------------------------------------------------      
+
+    #-----------------------------------------------------------------------------      
+    def annotate(self,beta=1):
+        # class
+        yClass = np.arange(self.yMin,self.yMax + beta, beta) 
+     
+        flag = False
+        for nInd in np.arange(self.yAll.shape[0]):
+            tmpY = self.yAll[nInd]
+            oneHot = np.zeros(len(yClass)-1)
+
+            # (最小、最大]
+            for cInd in range(len(yClass)-1):
+                if (tmpY >= yClass[cInd]) & (tmpY < yClass[cInd+1]): 
+                    oneHot[cInd] = 1            
+
+            '''
+            # 最小値は0番目のクラスにする
+            if self.yAll[nInd] == self.yMin:
+                oneHot[0] = 1
+            # 最大値が一番最後のクラスにラベルされるのを戻す
+            if self.yAll[nInd] == self.yMax:
+                oneHot[-2] = 1
+            '''
+            
+            tmpY = oneHot[np.newaxis] 
+                  
+            if not flag:
+                yLabel = tmpY
+                flag = True
+            else:
+                yLabel = np.vstack([yLabel,tmpY])
+            
+        '''    
+        # 値が入っていないクラスを削除
+        if len(yClass) == self.nClass + 1:
+            yLabel = yLabel[:,:-1]
+        '''
+        
+        self.yTrainLabel = yLabel[:self.nTrain]
+        self.yTestLabel = yLabel[self.nTrain:]
+
+    #-----------------------------------------------------------------------------#
+    def nextBatch(self, batchSize):    
+        sInd = batchSize * self.batchCnt
+        eInd = sInd + batchSize
+
+        batchX = self.xTrain[self.batchRandInd[sInd:eInd],:]
+        batchY = self.yTrain[self.batchRandInd[sInd:eInd],:]
+        batchlabelY = self.yTrainLabel[self.batchRandInd[sInd:eInd],:]
+        
+        
+        if eInd + batchSize > self.nTrain:
+            self.batchCnt = 0
+        else:
+            self.batchCnt += 1
+
+        return batchX,batchY,batchlabelY
+    #-----------------------------------------------------------------------------#
+        
