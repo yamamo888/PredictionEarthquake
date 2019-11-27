@@ -21,7 +21,6 @@ import Plot as myPlot
 
 # -------------------------- command argment ----------------------------------
 myArgs = input("Please specify arguments(space separator): ").split()
-print(myArgs)
 
 # toy data
 if int(myArgs[0]) == 0:
@@ -81,6 +80,8 @@ if dataMode == 0:
     savePath = "toypickles"
 else:
     savePath = "nankaipickles"
+    evalPath = "evalpickles"
+    evalFullPath = os.path.join(resultPath,evalPath) 
 
 pickleFullPath = os.path.join(resultPath,savePath)
 # -----------------------------------------------------------------------------
@@ -139,8 +140,6 @@ if dataMode == 0:
     beta = np.round((yMax - yMin) / nClass,limitdecimal)
     dataName = f"toy_{trialID}"
     nTraining = 5000
-    # not training alpha
-    istrainAlpha = True
 # Nankai
 else:
     dInput = nCell*nWindow
@@ -150,9 +149,10 @@ else:
     # Width class
     beta = np.round((nkMax - nkMin) / nClass,limitdecimal)
     dataName = f"nankai_{trialID}"
-    nTraining = 500000
-    # not training alpha
-    istrainAlpha = False
+    nTraining = 300000
+    # if evaluate nanakai data == True
+    isEval = False
+print(dataName)
 
 # Center variable of the first class
 first_cls_center = np.round(yMin + (beta / 2),limitdecimal)
@@ -177,9 +177,14 @@ testPeriod = 100
 # if plot == True
 isPlot = False
 # if save model == True
-isSaveModel = True
+isSaveModel = False
+# if save pickle == True
+isSavePkl = False
 # if restore model == True
-isRestoreModel = False
+isRestoreModel = True
+# not training alpha
+istrainAlpha = False
+
 # if l1loss == True
 if l1Mode == 1:
     isL1 = True
@@ -197,7 +202,9 @@ if dataMode == 0:
 else:
     myData = loadingNankai.NankaiData(nCell=nCell,nClass=nClass,nWindow=nWindow)
     myData.loadTrainTestData(nameInds=nameInds)
-    #myData.loadNankaiRireki()
+    if isEval:
+        myData.loadNankaiRireki()
+    # number of class
     if nClass == 10:
         nClass = 11
     elif nClass == 20:
@@ -209,9 +216,16 @@ else:
 #------------------------- placeholder ----------------------------------------
 # input of placeholder for classification
 x_cls = tf.placeholder(tf.float32,shape=[None,dInput])
+# for test classify
+x_cls_test = tf.placeholder(tf.float32,shape=[None,dInput]) 
+# for evalation classify
+x_cls_eval = tf.placeholder(tf.float32,shape=[None,dInput]) 
 # input of placeholder for regression
 x_reg = tf.placeholder(tf.float32,shape=[None,dInput])
+# for test regress
 x_reg_test = tf.placeholder(tf.float32,shape=[None,dInput])
+# for evalation regress
+x_reg_eval = tf.placeholder(tf.float32,shape=[None,dInput])
 # GT output of placeholder (target)
 y = tf.placeholder(tf.float32,shape=[None,dOutput])
 alpha_base = tf.placeholder(tf.float32)
@@ -232,18 +246,10 @@ def bias_variable(name,shape):
      return tf.get_variable(name,shape,initializer=tf.constant_initializer(0.1))
 #-----------------------------------------------------------------------------#
 def alpha_variable(name,shape):
-    #alphaInit = tf.random_normal_initializer(mean=0.5,stddev=0.1)
-    
-    if alphaMode == 20:
-        mean = 20
-    elif alphaMode == 200:
-        mean = 200
-    elif alphaMode == 500:
-        mean = 500
-    elif alphaMode == 1000:
-        mean = 1000
-    
-    alphaInit = tf.random_normal_initializer(mean=mean,stddev=0)
+    if istrainAlpha:
+        alphaInit = tf.random_normal_initializer(mean=0.5,stddev=0.1)
+    else:
+        alphaInit = tf.random_normal_initializer(mean=alphaMode,stddev=0)
     return tf.get_variable(name,shape,initializer=alphaInit)
 #-----------------------------------------------------------------------------#
 def fc_sigmoid(inputs,w,b,keepProb):
@@ -324,7 +330,7 @@ def Classify(x, reuse=False, keepProb=1.0,isNankai=False):
         # shape=[None,number of class]
         return y
 #-----------------------------------------------------------------------------#
-def Regress(x_reg,reuse=False,isATR=False,keepProb=1.0):
+def Regress(x_r,reuse=False,isATR=False,keepProb=1.0):
     
     """
     Fully-connected regression networks.
@@ -349,7 +355,7 @@ def Regress(x_reg,reuse=False,isATR=False,keepProb=1.0):
         # 1st layer
         w1_reg = weight_variable('w1_reg',[dInput,nRegHidden])
         bias1_reg = bias_variable('bias1_reg',[nRegHidden])
-        h1 = fc_relu(x_reg,w1_reg,bias1_reg,keepProb)
+        h1 = fc_relu(x_r,w1_reg,bias1_reg,keepProb)
         
         # 2nd layer
         w2_reg = weight_variable('w2_reg',[nRegHidden,nRegHidden2])
@@ -370,7 +376,7 @@ def Regress(x_reg,reuse=False,isATR=False,keepProb=1.0):
         else:
             return fc(h3,w4_reg,bias4_reg,keepProb),w1_reg,w2_reg 
 #-----------------------------------------------------------------------------#
-def ResidualRegress(x_reg,reuse=False,isATR=False,depth=0,keepProb=1.0):
+def ResidualRegress(x_res,reuse=False,isATR=False,depth=0,keepProb=1.0):
     
     """
     Fully-connected regression networks.
@@ -396,7 +402,7 @@ def ResidualRegress(x_reg,reuse=False,isATR=False,depth=0,keepProb=1.0):
         # 1st layer
         w1_reg = weight_variable('w1_reg',[dOutput + dInput,nRegHidden])
         bias1_reg = bias_variable('bias1_reg',[nRegHidden])
-        h1 = fc_relu(x_reg,w1_reg,bias1_reg,keepProb)
+        h1 = fc_relu(x_res,w1_reg,bias1_reg,keepProb)
         
         # 2nd layer
         w2_reg = weight_variable('w2_reg',[nRegHidden,nRegHidden2])
@@ -455,17 +461,28 @@ def CreateRegInputOutput(x,y,cls_score,isEval=False):
         # [number of data, cell(=3)] 
         pred_cls_center = tf.concat((pred_cls_center1,pred_cls_center2,pred_cls_center3),1)
     
+        
+    # residual = objective - center variavle of class 
+    r = y - pred_cls_center
+    # feature vector + center variable of class
+    cls_center_x =  tf.concat((pred_cls_center,x),axis=1)
+        
+    return pred_cls_center, r, cls_center_x
+#-----------------------------------------------------------------------------#
+def CreateRegInput(x,cls_score):
     
-    if isEval:
-        return pred_cls_center, cls_center_x
-    else:
-        
-        # residual = objective - center variavle of class 
-        r = y - pred_cls_center
-        # feature vector + center variable of class
-        cls_center_x =  tf.concat((pred_cls_center,x),axis=1)
-        
-        return pred_cls_center, r, cls_center_x
+    pred_maxcls1 = tf.expand_dims(tf.cast(tf.argmax(cls_score[:,:,0],axis=1),tf.float32),1)  
+    pred_maxcls2 = tf.expand_dims(tf.cast(tf.argmax(cls_score[:,:,1],axis=1),tf.float32),1)  
+    pred_maxcls3 = tf.expand_dims(tf.cast(tf.argmax(cls_score[:,:,2],axis=1),tf.float32),1)
+
+    pred_cls_center1 = pred_maxcls1 * beta + first_cls_center_nk
+    pred_cls_center2 = pred_maxcls2 * beta + first_cls_center_tk
+    pred_cls_center3 = pred_maxcls3 * beta + first_cls_center_tk
+    
+    pred_cls_center = tf.concat((pred_cls_center1,pred_cls_center2,pred_cls_center3),1)
+    cls_center_x =  tf.concat((pred_cls_center,x),axis=1)
+    
+    return pred_cls_center, cls_center_x
 #-----------------------------------------------------------------------------#
 def TruncatedResidual(r,alpha_base,reuse=False):
     """
@@ -492,6 +509,17 @@ def TruncatedResidual(r,alpha_base,reuse=False):
         else:
             r_at = 1/(1 + tf.exp(- alpha * r))
             return r_at, alpha
+#-----------------------------------------------------------------------------#
+def EvalAlpha(alpha_base,reuse=False):
+    
+    with tf.variable_scope('TrResidual') as scope:  
+        if reuse:
+            scope.reuse_variables()
+        
+        alpha = alpha_variable("alpha",[dOutput])
+        
+        return alpha
+
 #-----------------------------------------------------------------------------#
 #reduce_res_op = Reduce(reg_res,alpha,reuse=True)
 def Reduce(r_at,param,reuse=False):
@@ -555,26 +583,26 @@ def Optimizer(loss,name_scope="Regress"):
 # IN -> x_cls: feature vector x = x1 + x2
 # OUT -> cls_op: one-hot vector
 cls_op = Classify(x_cls,keepProb=keepProbTrain)
-cls_op_test = Classify(x_cls,reuse=True,keepProb=1.0)
-#cls_op_eval = Classify(x_cls,reuse=True,keepProb=1.0)
+cls_op_test = Classify(x_cls_test,reuse=True,keepProb=1.0)
+cls_op_eval = Classify(x_cls_eval,reuse=True,keepProb=1.0)
 
 # ============== Make Regression Input & Output ========================= #
 # IN -> x_cls: feature vector x = x1 + x2, cls_op: one-hot vector
 # OUT -> pred_cls_center: center of predicted class, res: gt residual, reg_in: x + pred_cls_center
 pred_cls_center, res, reg_in = CreateRegInputOutput(x_cls,y,cls_op)
-pred_cls_center_test, res_test, reg_in_test = CreateRegInputOutput(x_cls,y,cls_op_test)
-#pred_cls_center_eval = CreateRegInputOutput(x_cls,y,cls_op_eval,isEval=True)
+pred_cls_center_test, res_test, reg_in_test = CreateRegInputOutput(x_cls_test,y,cls_op_test)
+pred_cls_center_eval,reg_in_eval = CreateRegInput(x_cls_eval,cls_op_eval)
 # ====================== Regression networks ============================ #
 # IN -> x_reg: feature vector x = x1 + x2 (only baseline) or x + predicted center of class, 
 #       isATR: bool (if ATR-Nets, isATR=True), depth: number of layer (command args)
 # OUT -> reg_res: predicted of target variables y (baseline), predicted residual (Anchor-based), predicted truncated residual (ATR-Nets)
 reg_res,res_w1,res_w2 = ResidualRegress(reg_in,isATR=isATR,keepProb=keepProbTrain)
 reg_res_test,res_w1_test,res_w2_test = ResidualRegress(reg_in_test,reuse=True,isATR=isATR,keepProb=1.0)
-#reg_res_eval = ResidualRegress(reg_in_eval,reuse=True,isATR=isATR,depth=depth,keepProb=1.0)
+reg_res_eval,res_w1_eval,res_w2_eval = ResidualRegress(reg_in_eval,reuse=True,isATR=isATR,keepProb=1.0)
 
 reg_y,reg_w1,reg_w2 = Regress(x_reg,isATR=isATR,keepProb=keepProbTrain)
 reg_y_test,reg_w1_test,reg_w2_test = Regress(x_reg_test,reuse=True,isATR=isATR,keepProb=1.0)
-#reg_y_eval = Regress(x_reg_eval,reuse=True,isATR=isATR,depth=depth,keepProb=1.0)
+reg_y_eval,reg_w1_eval,reg_w2_eval = Regress(x_reg_eval,reuse=True,isATR=isATR,keepProb=1.0)
 
 # ======================= L1 & L2 Loss ==================================== #
 # ridge w residual var
@@ -596,16 +624,18 @@ reg_l2_test = tf.nn.l2_loss(reg_w1_test) + tf.nn.l2_loss(reg_w2_test)
 # OUT -> res_at: truncated range residual, [None,1], alpha: truncated parameter, [1]  
 res_atr, alpha = TruncatedResidual(res,alpha_base)
 res_atr_test, alpha_test = TruncatedResidual(res_test,alpha_base,reuse=True)
-
+alpha_eval = EvalAlpha(alpha_base,reuse=True)
 # ================== Reduce truncated residual ========================== #
 # IN -> reg_res: predicted truncated regression
 # OUT -> reduce_res: reduced residual, [None,1] 
 reduce_res_op = Reduce(reg_res,alpha,reuse=True)
 reduce_res_op_test = Reduce(reg_res_test,alpha_test,reuse=True)
+reduce_res_op_eval = Reduce(reg_res_eval,alpha_eval,reuse=True)
 
 # predicted y by ATR-Nets
 pred_y = pred_cls_center + reduce_res_op
 pred_y_test = pred_cls_center_test + reduce_res_op_test
+pred_y_eval = pred_cls_center_eval + reduce_res_op_eval
 
 # ============================= Loss ==================================== #
 # Classification loss
@@ -659,11 +689,14 @@ loss_atr_l2_test = loss_atr_test + res_l2_test
 #_, var_train = tf.nn.moments(pred_y,[0])
 #_, var_test = tf.nn.moments(pred_y_test,[0])
 grad_x = tf.gradients(pred_y,x_cls)
-grad_x_test = tf.gradients(pred_y,x_cls)
+grad_x_test = tf.gradients(pred_y_test,x_cls_test)
+
 max_grad_x = tf.reduce_max(tf.abs(grad_x))
 max_grad_x_test = tf.reduce_max(tf.abs(grad_x_test))
+
 _, var_train = tf.nn.moments(grad_x[0],[0])
 _, var_test = tf.nn.moments(grad_x_test[0],[0])
+
 loss_alpha = max_grad_x #tf.reduce_sum(var_train)
 loss_alpha_test = Loss(y,pred_y_test) + max_grad_x_test #tf.reduce_sum(var_test)
 
@@ -701,6 +734,7 @@ trainer_atr_l2 = Optimizer(loss_atr,name_scope="ResidualRegress")
 # for alpha training in atr-nets
 trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
+pdb.set_trace()
 #------------------------------------------------------------------------ # 
 if isSaveModel:
     # save model, every test steps
@@ -712,13 +746,18 @@ sess = tf.Session(config=config)
 sess.run(tf.global_variables_initializer())
 
 if isRestoreModel:
-    
     # restore saved model, latest
     savedfilePath = "{}{}".format(savePath,methodModel)
+    if istrainAlpha:
+        savedfilePath = f"{savePath}{methodModel}{int(alphaMode)}"
+    
+    if methodModel == 2:
+        savedfilePath = f"{savePath}{methodModel}{int(alphaMode)}"
     savedmodelDir = os.path.join(modelPath,savedfilePath)
     if os.path.exists(savedmodelDir):
         saver = tf.train.Saver()
         saver.restore(sess,tf.train.latest_checkpoint(savedmodelDir))
+        print("---- Success Restore! ----")
         # select model
         #saver.restore(sess,os.path.join(savedmodelDir,"model_0_1-10000"))
 
@@ -730,7 +769,7 @@ for i in range(nTraining):
     
     # Get mini-batch
     batchX,batchY,batchlabelY = myData.nextBatch(batchSize)
-    #pdb.set_trace()
+    
     if dataMode == 1:
     # ------------------------------------------------------------------- #
         # Change nankai date
@@ -758,6 +797,11 @@ for i in range(nTraining):
         # -------------------- Test ------------------------------------- #
         if i % testPeriod == 0:   
             
+            if isEval:
+                evalPred = \
+                sess.run(reg_y_eval,feed_dict={x_reg_eval:myData.xEval})
+                print("----")
+                print(evalPred[:10,0])
             if l1Mode == 1:
                 # l1 + regression
                 testPred, testRegLoss = sess.run([reg_y_test, loss_reg_l1_test], feed_dict={x_reg_test:myData.xTest, y:myData.yTest})
@@ -769,7 +813,6 @@ for i in range(nTraining):
                 testPred, testRegLoss = sess.run([reg_y_test, loss_reg_test], feed_dict={x_reg_test:myData.xTest, y:myData.yTest})
             trainTotalVar  = np.var(np.square(batchY - trainPred))
             testTotalVar = np.var(np.square(myData.yTest - testPred))
-            pdb.set_trace() 
             print("tr:%d, trainRegLoss:%f, trainTotalVar:%f" % (i, trainRegLoss, trainTotalVar))
             print("itr:%d, testRegLoss:%f, testTotalVar:%f" % (i, testRegLoss, testTotalVar)) 
             # save model
@@ -778,13 +821,13 @@ for i in range(nTraining):
                 modelfileName = "model_{}_{}".format(methodModel,trialID)
                 savemodelDir = os.path.join(modelPath,savemodelPath)
                 saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
-                """
+                
                 # update checkpoint
                 f = open(os.path.join(savemodelDir,"log.txt"),"a")
                 f.write(modelfileName + "-" +  "{}".format(i) + "\n")
                 f.write("trainLoss:{},trainVar:{},testLoss:{},testVar:{}\n".format(trainRegLoss,trainTotalVar,testRegLoss,testTotalVar))
                 f.close()
-                """
+                
             if not flag:
                 trainRegLosses,testRegLosses = trainRegLoss[np.newaxis],testRegLoss[np.newaxis]
                 flag = True
@@ -807,12 +850,17 @@ for i in range(nTraining):
 
         # -------------------- Test ------------------------------------- #
         if i % testPeriod == 0:
+            if isEval:
+                evalPred, evalClsCenter, evalResPred = \
+                sess.run([reg_res_eval, pred_cls_center_eval, reg_res_eval],feed_dict={x_cls_eval:myData.xEval})
+                print("----")
+                print(evalPred[:10,0])
             if l1Mode == 1:
-                testClsLoss, testResLoss, testClsCenter, testResPred  = sess.run([loss_cls_test, loss_anc_l1_test, pred_cls_center_test, reg_res_test], feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+                testClsLoss, testResLoss, testClsCenter, testResPred  = sess.run([loss_cls_test, loss_anc_l1_test, pred_cls_center_test, reg_res_test], feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
             elif l2Mode == 1:
-                testClsLoss, testResLoss, testClsCenter, testResPred  = sess.run([loss_cls_test, loss_anc_l2_test, pred_cls_center_test, reg_res_test], feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+                testClsLoss, testResLoss, testClsCenter, testResPred  = sess.run([loss_cls_test, loss_anc_l2_test, pred_cls_center_test, reg_res_test], feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
             else:
-                testClsLoss, testResLoss, testClsCenter, testResPred  = sess.run([loss_cls_test, loss_anc_test, pred_cls_center_test, reg_res_test], feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+                testClsLoss, testResLoss, testClsCenter, testResPred  = sess.run([loss_cls_test, loss_anc_test, pred_cls_center_test, reg_res_test], feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
             
             # Reduce
             trainPred = trainClsCenter + trainResPred
@@ -826,19 +874,19 @@ for i in range(nTraining):
             print("itr:%d,trainClsLoss:%f,trainRegLoss:%f, trainTotalLoss:%f, trainTotalVar:%f" % (i,trainClsLoss,trainResLoss, trainTotalLoss, trainTotalVar))
             print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testResLoss, testTotalLoss, testTotalVar)) 
             
-            pdb.set_trace() 
             # save model
             if isSaveModel:
+                
                 savemodelPath =  "{}{}".format(savePath,methodModel)
                 modelfileName = "model_{}_{}".format(methodModel,trialID)
                 savemodelDir = os.path.join(modelPath,savemodelPath)
                 saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
-                """
+                
                 # update checkpoint
                 f = open(os.path.join(savemodelDir,"log.txt"),"a")
                 f.write(modelfileName + "-" +  "{}".format(i) + "\n")
                 f.write("trainLoss:{},trainVar:{},testLoss:{},testVar:{}\n".format(trainTotalLoss,trainTotalVar,testTotalLoss,testTotalVar))
-                f.close()"""
+                f.close()
             
             if not flag:
                 trainResLosses,testResLosses = trainResLoss[np.newaxis],testResLoss[np.newaxis]
@@ -856,34 +904,28 @@ for i in range(nTraining):
     # ======================== Atr-Nets ================================= #
     elif methodModel == 2:
 
-        if i==0:
-            alpha_base_value = 0.1
-        if istrainAlpha:
-            _, _, _, trainClsCenter, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainAlphaLoss, trainRResPred, grad_x_value = \
-            sess.run([trainer_cls, trainer_atr, trainer_alpha, pred_cls_center, reg_res, alpha, loss_cls, loss_atr, loss_alpha, reduce_res_op, grad_x],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
-            
-        
-        else:
-            if l1Mode == 1:
+        if i==0:   
+            #alpha_base_value = 0.1
+            alpha_base_value = float(alphaMode)
+
+            if istrainAlpha:
+                _, _, _, trainClsCenter, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainAlphaLoss, trainRResPred, grad_x_value = \
+                sess.run([trainer_cls, trainer_atr, trainer_alpha, pred_cls_center, reg_res, alpha, loss_cls, loss_atr, loss_alpha, reduce_res_op, grad_x],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
+           
+            elif l1Mode == 1:
                  # fixing alpha
                  _, _, trainClsCenter, trainCls, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainRResPred = \
                  sess.run([trainer_cls, trainer_atr_l1, pred_cls_center, cls_op, reg_res, alpha, loss_cls, loss_atr, reduce_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
 
-                 testClsCenter, testResPred, testAlpha, testClsLoss, testResLoss, testAlphaLoss, testRResPred = \
-                 sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_l1_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
             elif l2Mode == 1:
                  # fixing alpha
                  _, _, trainClsCenter, trainCls, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainRResPred = \
                  sess.run([trainer_cls, trainer_atr_l2, pred_cls_center, cls_op, reg_res, alpha, loss_cls, loss_atr_l2, reduce_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
 
-                 testClsCenter, testResPred, testAlpha, testClsLoss, testResLoss, testAlphaLoss, testRResPred = \
-                 sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_l2_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
             else:
                  # fixing alpha
                  _, _, trainClsCenter, trainCls, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainRResPred = \
                  sess.run([trainer_cls, trainer_atr, pred_cls_center, cls_op, reg_res, alpha, loss_cls, loss_atr, reduce_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
-                 #pdb.set_trace()
-
 
             #_, trainAlpha, trainAlphaLoss, grad_x_value, max_grad_x_value = \
             #sess.run([trainer_alpha, alpha, loss_alpha, grad_x, max_grad_x],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
@@ -904,16 +946,22 @@ for i in range(nTraining):
                 entropy = np.mean(np.sum(prob*np.log(prob+10e-5),axis=1))
                 print(f"entropy = {entropy}")
             
+            if isEval:
+                evalClsCenter, evalResPred, evalAlpha, evalRResPred = \
+                sess.run([pred_cls_center_eval, reg_res_eval, alpha_eval, reduce_res_op_eval],feed_dict={x_cls_eval:myData.xEval,alpha_base:alpha_base_value})
+                evalPred = evalClsCenter + evalRResPred
+                print("----")
+                print(evalPred[:10,0])
+            
             if l1Mode == 1:
                 testClsCenter, testResPred, testAlpha, testClsLoss, testResLoss, testAlphaLoss, testRResPred = \
-                sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_l1_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
+                sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_l1_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
             elif l2Mode == 1:
                 testClsCenter, testResPred, testAlpha, testClsLoss, testResLoss, testAlphaLoss, testRResPred = \
-                sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_l2_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
+                sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_l2_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
             else:
                 testClsCenter, testResPred, testAlpha, testClsLoss, testResLoss, testAlphaLoss, testRResPred = \
-                sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
-            
+                sess.run([pred_cls_center_test, reg_res_test, alpha_test, loss_cls_test, loss_atr_test, loss_alpha_test, reduce_res_op_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel,alpha_base:alpha_base_value})
             # Recover
             testPred = testClsCenter + testRResPred
     
@@ -928,6 +976,7 @@ for i in range(nTraining):
             TestTrRes = 1/(1+np.exp(-testAlpha * testResPred))
             TestBigResidual = np.where((0.0==TestTrRes)|(TestTrRes==1.0))
             TestbigResidualpar = TestBigResidual[0].shape[0] / myData.yTest.shape[0]
+            pdb.set_trace()
             
             print("Test Alpha", testAlpha)
             print("BigTrainResidual割合", bigResidualpar)
@@ -935,10 +984,12 @@ for i in range(nTraining):
             print("-----------------------------------")
             print("itr:%d,trainClsLoss:%f,trainRegLoss:%f, trainTotalLoss:%f, trainTotalVar:%f" % (i,trainClsLoss,trainResLoss, trainTotalLoss, trainTotalVar))
             print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testResLoss, testTotalLoss, testTotalVar)) 
-            #pdb.set_trace() 
             # save model
             if isSaveModel:
-                savemodelPath =  "{}{}{}".format(savePath,methodModel,int(alphaMode))
+                if istrainAlpha:
+                    savemodelPath = f"{savePath}adapt"
+                else:
+                    savemodelPath =  "{}{}{}".format(savePath,methodModel,int(alphaMode))
                 modelfileName = "model_{}_{}".format(methodModel,trialID)
                 savemodelDir = os.path.join(modelPath,savemodelPath)
                 saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
@@ -975,7 +1026,13 @@ if methodModel == 0:
         
     myPlot.Plot_loss(0,0,0,0,trainRegLosses, testRegLosses,testPeriod,isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
     
-    with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
+    if isEval:
+        with open(os.path.join(evalFullPath,f"{savefilePath}.pkl"),"wb") as fp:
+            pickle.dump(myData.xEval,fp)
+            pickle.dump(evalPred,fp) 
+    
+    if isSavePkl:
+        with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
             #pickle.dump(batchY,fp)
             #pickle.dump(trainPred,fp)
             pickle.dump(myData.yTest,fp)
@@ -997,24 +1054,33 @@ elif methodModel == 1:
         
     myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
     
-    with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
-        #pickle.dump(batchY,fp)
-        #pickle.dump(trainPred,fp)
-        pickle.dump(myData.yTest,fp)
-        pickle.dump(testPred,fp)
-        pickle.dump(myData.xTest,fp)
-        pickle.dump(testClsCenter,fp)
-        pickle.dump(testResPred,fp)
-        #pickle.dump(trainTotalVar,fp)
-        #pickle.dump(testTotalVar,fp)
-        pickle.dump(trainClassLosses,fp)
-        pickle.dump(testClassLosses,fp)
-        pickle.dump(trainResLosses,fp)
-        pickle.dump(testResLosses,fp)
-        pickle.dump(trainTotalLosses,fp)
-        pickle.dump(testTotalLosses,fp)
+    if isEval:
+        with open(os.path.join(evalFullPath,f"{savefilePath}.pkl"),"wb") as fp:
+            pickle.dump(myData.xEval,fp)
+            pickle.dump(evalPred,fp) 
+            pickle.dump(evalClsCenter,fp)
+            pickle.dump(evalResPred,fp)
+   
+    if isSavePkl: 
+        with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
+            #pickle.dump(batchY,fp)
+            #pickle.dump(trainPred,fp)
+            pickle.dump(myData.yTest,fp)
+            pickle.dump(testPred,fp)
+            pickle.dump(myData.xTest,fp)
+            pickle.dump(testClsCenter,fp)
+            pickle.dump(testResPred,fp)
+            #pickle.dump(trainTotalVar,fp)
+            #pickle.dump(testTotalVar,fp)
+            pickle.dump(trainClassLosses,fp)
+            pickle.dump(testClassLosses,fp)
+            pickle.dump(trainResLosses,fp)
+            pickle.dump(testResLosses,fp)
+            pickle.dump(trainTotalLosses,fp)
+            pickle.dump(testTotalLosses,fp)
     
 # ----------------------------------------------------------------------- #
+
 elif methodModel == 2: 
     
     if dataMode == 0:
@@ -1026,21 +1092,33 @@ elif methodModel == 2:
         
     myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
     
-    with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
-        #pickle.dump(batchY,fp)
-        #pickle.dump(trainPred,fp)
-        pickle.dump(myData.yTest,fp)
-        pickle.dump(testPred,fp)
-        pickle.dump(myData.xTest,fp)
-        pickle.dump(testClsCenter,fp)
-        pickle.dump(testResPred,fp)
-        #pickle.dump(trainTotalVar,fp)
-        #pickle.dump(testTotalVar,fp)
-        pickle.dump(trainClassLosses,fp)
-        pickle.dump(testClassLosses,fp)
-        pickle.dump(trainResLosses,fp)
-        pickle.dump(testResLosses,fp)
-        pickle.dump(trainTotalLosses,fp)
-        pickle.dump(testTotalLosses,fp)
-    #pdb.set_trace() 
-# ----------------------------------------------------------------------- #  
+    if isEval:
+        with open(os.path.join(evalFullPath,f"{savefilePath}.pkl"),"wb") as fp:
+            pickle.dump(myData.xEval,fp)
+            pickle.dump(evalPred,fp) 
+            pickle.dump(evalClsCenter,fp)
+            pickle.dump(evalResPred,fp)
+    
+    
+    if isSavePkl:
+        with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
+            #pickle.dump(batchY,fp)
+            #pickle.dump(trainPred,fp)
+            pickle.dump(myData.yTest,fp)
+            pickle.dump(testPred,fp)
+            pickle.dump(myData.xTest,fp)
+            pickle.dump(testClsCenter,fp)
+            pickle.dump(testResPred,fp)
+            #pickle.dump(trainTotalVar,fp)
+            #pickle.dump(testTotalVar,fp)
+            pickle.dump(trainClassLosses,fp)
+            pickle.dump(testClassLosses,fp)
+            pickle.dump(trainResLosses,fp)
+            pickle.dump(testResLosses,fp)
+            pickle.dump(trainTotalLosses,fp)
+            pickle.dump(testTotalLosses,fp)
+
+# ----------------------------------------------------------------------- # 
+# ----------------------------------------------------------------------- # 
+
+ 
