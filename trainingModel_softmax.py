@@ -26,7 +26,7 @@ myArgs = input("Please specify arguments(space separator): ").split()
 if int(myArgs[0]) == 0:
     # 0: toydata var., 1: nankai var.
     dataMode = int(sys.argv[1])
-    # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets
+    # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets, 3: soft atr-nets
     methodModel = int(sys.argv[2])
     # noize of x1, x2
     sigma = float(sys.argv[3])
@@ -54,21 +54,29 @@ elif int(myArgs[0]) == 1:
     dataMode = int(sys.argv[1])
     # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets
     methodModel = int(sys.argv[2])
-    # nankai nClass = 11 or 21 or 51
+    # nankai nClass = 10 or 20 or 50
     nClass = int(sys.argv[3])
     # number of layer for Regression NN
     # batch size
     batchSize = int(sys.argv[4])
     # alpha
     alphaMode = float(sys.argv[5])
+    # hyper params (tr) variable mean
+    trMode = float(sys.argv[6])
+    # hyper params (tl) variable mean
+    tlMode = float(sys.argv[7])
+    # hyper params (ar) variable mean
+    arMode = float(sys.argv[8])
+    # hyper params (al) variable mean
+    alMode = float(sys.argv[9])
+    # hyper params variable sigma
+    stddevMode = float(sys.argv[10])
     # l1loss
-    l1Mode = int(sys.argv[6])
+    l1Mode = int(sys.argv[11])
     # l2loss
-    l2Mode = int(sys.argv[7])
-    # constant multiple
-    #cm100 = int(sys.argv[9])
+    l2Mode = int(sys.argv[12])
     # trial ID
-    trialID = sys.argv[8]
+    trialID = sys.argv[13]
 # -----------------------------------------------------------------------------
 
 # ------------------------------- path ----------------------------------------
@@ -108,7 +116,7 @@ nRegHidden3 = 128
 # node of 4 hidden
 nRegHidden4 = 128
 
-if methodModel == 2:
+if methodModel == 2 and methodModel == 3:
     isATR = True
 else:
     isATR = False
@@ -149,7 +157,7 @@ else:
     # Width class
     beta = np.round((nkMax - nkMin) / nClass,limitdecimal)
     dataName = f"nankai_{trialID}"
-    nTraining = 300000
+    nTraining = 1000
     # if evaluate nanakai data == True
     isEval = False
 print(dataName)
@@ -175,13 +183,13 @@ filePeriod = nTraining / 10
 # test count
 testPeriod = 100
 # if plot == True
-isPlot = False
+isPlot = True
 # if save model == True
-isSaveModel = False
+isSaveModel = True
 # if save pickle == True
-isSavePkl = False
+isSavePkl = True
 # if restore model == True
-isRestoreModel = True
+isRestoreModel = False
 # not training alpha
 istrainAlpha = False
 
@@ -245,12 +253,10 @@ def weight_variable(name,shape):
 def bias_variable(name,shape):
      return tf.get_variable(name,shape,initializer=tf.constant_initializer(0.1))
 #-----------------------------------------------------------------------------#
-def alpha_variable(name,shape):
-    if istrainAlpha:
-        alphaInit = tf.random_normal_initializer(mean=0.5,stddev=0.1)
-    else:
-        alphaInit = tf.random_normal_initializer(mean=alphaMode,stddev=0)
-    return tf.get_variable(name,shape,initializer=alphaInit)
+def hparam_variable(name,shape,mean=0,stddev=0):
+    # default mean=0.5, stddev=0.1
+    pInit = tf.random_normal_initializer(mean=mean,stddev=stddev)
+    return tf.get_variable(name,shape,initializer=pInit)
 #-----------------------------------------------------------------------------#
 def fc_sigmoid(inputs,w,b,keepProb):
     sigmoid = tf.matmul(inputs,w) + b
@@ -270,7 +276,6 @@ def fc(inputs,w,b,keepProb):
      return fc
 #-----------------------------------------------------------------------------#
 def Classify(x, reuse=False, keepProb=1.0,isNankai=False):
-    
     """
     5 layer fully-connected classification networks.
     Activation: relu -> relu -> none
@@ -331,7 +336,6 @@ def Classify(x, reuse=False, keepProb=1.0,isNankai=False):
         return y
 #-----------------------------------------------------------------------------#
 def Regress(x_r,reuse=False,isATR=False,keepProb=1.0):
-    
     """
     Fully-connected regression networks.
     
@@ -377,7 +381,6 @@ def Regress(x_r,reuse=False,isATR=False,keepProb=1.0):
             return fc(h3,w4_reg,bias4_reg,keepProb),w1_reg,w2_reg 
 #-----------------------------------------------------------------------------#
 def ResidualRegress(x_res,reuse=False,isATR=False,depth=0,keepProb=1.0):
-    
     """
     Fully-connected regression networks.
     
@@ -424,7 +427,6 @@ def ResidualRegress(x_res,reuse=False,isATR=False,depth=0,keepProb=1.0):
             return fc(h3,w4_reg,bias4_reg,keepProb),w1_reg,w2_reg 
 #-----------------------------------------------------------------------------#
 def CreateRegInputOutput(x,y,cls_score,isEval=False):
-    
     """
     Create input vector(=cls_center_x) & anchor-based method GT output(=r) for Regress.
     
@@ -499,8 +501,8 @@ def TruncatedResidual(r,alpha_base,reuse=False):
     with tf.variable_scope('TrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
-        
-        alpha = alpha_variable("alpha",[dOutput]) 
+    
+        alpha = hparam_variable("alpha",[dOutput],alphaMode,stddevMode) 
         alpha_final = tf.multiply(alpha,alpha_base)
         
         if istrainAlpha:
@@ -510,16 +512,60 @@ def TruncatedResidual(r,alpha_base,reuse=False):
             r_at = 1/(1 + tf.exp(- alpha * r))
             return r_at, alpha
 #-----------------------------------------------------------------------------#
-def EvalAlpha(alpha_base,reuse=False):
+def SoftTruncatedResidual(r,reuse=False):
+    """
+    We used SReLU function, residuals(r) to truncated residuals(soft_r_at).
     
+    References:   
+        [Deep Learning with S-shaped Rectified Linear Activation Units] (http://arxiv.org/abs/1512.07030)
+    
+    Args:
+        r: residual
+        reuse=False: Train, reuse=True: Evaluation & Test (alpha sharing)
+        tr: initialization function for the right part intercept
+        tl: initialization function for the left part intercept
+        ar: initialization function for the right part slope
+        al: initialization function for the left part slope
+    
+    Returns:
+        soft_r_at: truncated range of residual with SReLU
+    """
+    with tf.variable_scope('SoftTrResidual') as scope:  
+        if reuse:
+            scope.reuse_variables()
+        
+        # ---- param ---- #
+        tr = hparam_variable("trparam",[dOutput],trMode,stddevMode)
+        tl = hparam_variable("tlparam",[dOutput],tlMode,stddevMode)
+        ar = hparam_variable("arparam",[dOutput],arMode,stddevMode)
+        al = hparam_variable("alparam",[dOutput],alMode,stddevMode)
+        # --------------- #
+        
+        # positive, center, negative indexes
+        positive_index = tf.where(r>=tr)
+        center_index = tf.where(tl>r>tr)
+        negative_index = tf.where(tl>=r)
+        
+        # SReLU (x => tr)
+        positive = tr + ar * (tf.gather_nd(r,positive_index) - tr) 
+        # SReLU (tl > x > tr)
+        center = tf.gather_nd(r,center_index)
+        # SReLU (x <= tl)
+        negative = tl + al * (tf.gather_nd(r,negative_index) - tl)
+        
+        # SReLU
+        soft_r_at = positive + center + negative
+        
+        return soft_r_at, positive_index, center_index, negative_index, tr, ar, tl, al
+#-----------------------------------------------------------------------------#
+def EvalAlpha(alpha_base,reuse=False):
     with tf.variable_scope('TrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
         
-        alpha = alpha_variable("alpha",[dOutput])
+        alpha = hparam_variable("alpha",[dOutput])
         
         return alpha
-
 #-----------------------------------------------------------------------------#
 #reduce_res_op = Reduce(reg_res,alpha,reuse=True)
 def Reduce(r_at,param,reuse=False):
@@ -542,7 +588,43 @@ def Reduce(r_at,param,reuse=False):
         pred_r = 1/param * tf.log(r_at/(1-r_at + 1e-8))
         
         return pred_r
-#-----------------------------------------------------------------------------#    
+#-----------------------------------------------------------------------------#
+def SoftReduce(soft_r_at,p_ind,c_ind,n_ind,thr,sr,thl,sl,reuse=False):
+    """
+    Reduce truncated residual(=r_at) to residual(=pred_r).
+    
+    Args:
+        soft_r_at: soft truncated residual
+        p_ind: positive index
+        c_ind: center index
+        n_ind: negative index
+        thr: initialization function for the right part intercept
+        sr: initialization function for the right part slope
+        thl: initialization function for the left part intercept
+        sl: initialization function for the left part slope
+        reuse=False: Train, reuse=True: Evaluation & Test (alpha sharing)
+    
+    Returns:
+        pred_soft_r: reduce soft residual 
+    """
+    with tf.variable_scope('SoftTrResidual') as scope:  
+        if reuse:
+            scope.reuse_variables()
+        
+        # positive,center,negative soft truncated residual
+        positive_r_at = tf.gather_nd(soft_r_at,tf.where(p_ind))
+        center_r_at = tf.gather_nd(soft_r_at,tf.where(c_ind))
+        negative_r_at = tf.gather_nd(soft_r_at,tf.where(n_ind))
+        
+        # reduce positive,center,negative
+        positive_r = ((positive_r_at - thr)/sr) + thr
+        center_r = center_r_at
+        negative_r = ((negative_r_at - thl)/sl) + thl
+        
+        pred_soft_r = positive_r + center_r + negative_r
+        
+        return pred_soft_r
+#-----------------------------------------------------------------------------#
 def Loss(y,predict,isCE=False):
     """
     Loss function for Regress & Classify & alpha.
@@ -625,6 +707,12 @@ reg_l2_test = tf.nn.l2_loss(reg_w1_test) + tf.nn.l2_loss(reg_w2_test)
 res_atr, alpha = TruncatedResidual(res,alpha_base)
 res_atr_test, alpha_test = TruncatedResidual(res_test,alpha_base,reuse=True)
 alpha_eval = EvalAlpha(alpha_base,reuse=True)
+
+# =================== Soft Truncated residual ================================ #
+res_soft_atr, pos_ind, cent_ind, neg_ind, pos_threshold, pos_slope, neg_threshold, neg_slope = SoftTruncatedResidual(res)
+res_soft_atr_test, pos_ind_test, cent_ind_test, neg_ind_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test = SoftTruncatedResidual(res_test,reuse=True)
+#alpha_eval = EvalAlpha(alpha_base,reuse=True)
+
 # ================== Reduce truncated residual ========================== #
 # IN -> reg_res: predicted truncated regression
 # OUT -> reduce_res: reduced residual, [None,1] 
@@ -636,6 +724,16 @@ reduce_res_op_eval = Reduce(reg_res_eval,alpha_eval,reuse=True)
 pred_y = pred_cls_center + reduce_res_op
 pred_y_test = pred_cls_center_test + reduce_res_op_test
 pred_y_eval = pred_cls_center_eval + reduce_res_op_eval
+
+# ================== Reduce soft truncated residual ========================== #
+reduce_soft_res_op = SoftReduce(reg_res, pos_ind,cent_ind,neg_ind,pos_threshold, pos_slope, neg_threshold, neg_slope, reuse=True)
+reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_ind_test, cent_ind_test, neg_ind_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
+#reduce_soft_res_op_eval = SoftReduce(reg_res_eval,alpha_eval,reuse=True)
+
+# predicted y by ATR-Nets
+pred_soft_y = pred_cls_center + reduce_soft_res_op
+pred_soft_y_test = pred_cls_center_test + reduce_soft_res_op_test
+#pred_soft_y_eval = pred_cls_center_eval + reduce_res_op_eval
 
 # ============================= Loss ==================================== #
 # Classification loss
@@ -681,6 +779,9 @@ loss_atr_l1_test = loss_atr_test + res_l1_test
 loss_atr_l2 = loss_atr + res_l2
 loss_atr_l2_test = loss_atr_test + res_l2_test
 
+# Regression Loss for Soft ATR-Nets
+loss_soft_atr = Loss(res_soft_atr,reg_res)
+loss_soft_atr_test = Loss(res_soft_atr_test,reg_res_test)
 
 # Training alpha loss
 # gt value (y) vs predicted value (pred_yz = pred_cls_center + reduce_res)
@@ -734,7 +835,9 @@ trainer_atr_l2 = Optimizer(loss_atr,name_scope="ResidualRegress")
 # for alpha training in atr-nets
 trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
-#pdb.set_trace()
+# for soft ATR-Nets regression
+trainer_soft_atr = Optimizer(loss_soft_atr,name_scope="ResidualRegress")
+
 #------------------------------------------------------------------------ # 
 if isSaveModel:
     # save model, every test steps
@@ -793,7 +896,6 @@ for i in range(nTraining):
             # ordinary regression
             _, trainPred, trainRegLoss = sess.run([trainer_reg, reg_y, loss_reg], feed_dict={x_reg:batchX, y:batchY})
         
-             
         # -------------------- Test ------------------------------------- #
         if i % testPeriod == 0:   
             
@@ -1016,6 +1118,67 @@ for i in range(nTraining):
             savefilePath = "{}_{}_{}_{}_{}_{}_{}_{}_{}".format(i,dataName,methodModel,nClass,batchSize,testAlpha,l1Mode,l2Mode,trialID)
         
             myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
+    # ======================== Soft Atr-Nets ================================= #
+    elif methodModel == 3:
+        # fixing params
+        _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred = \
+        sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+
+        trainPred = trainClsCenter + trainSoftRResPred
+        trainTotalLoss = np.mean(np.square(batchY - trainPred))
+        trainTotalVar  = np.var(np.square(batchY - trainPred))
+            
+        # -------------------- Test ------------------------------------- #
+        if i % testPeriod == 0:
+            #------------
+            # no
+            if isEval: 
+                evalClsCenter, evalResPred, evalAlpha, evalRResPred = \
+                sess.run([pred_cls_center_eval, reg_res_eval, alpha_eval, reduce_res_op_eval],feed_dict={x_cls_eval:myData.xEval,alpha_base:alpha_base_value})
+                evalPred = evalClsCenter + evalRResPred
+                print("----")
+                print(evalPred[:10,0])
+            
+            testClsCenter, testSoftRes, testSoftResPred, testClsLoss, testSoftResLoss, testSoftRResPred = \
+            sess.run([pred_cls_center_test, res_soft_atr_test, reg_res_test, loss_cls_test, loss_soft_atr_test, reduce_soft_res_op_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+            
+            # Recover
+            testPred = testClsCenter + testSoftRResPred
+            # total loss (mean) & variance
+            testTotalLoss  = np.mean(np.square(myData.yTest - testPred))
+            testTotalVar  = np.var(np.square(myData.yTest - testPred))
+            
+            print("-----------------------------------")
+            print("itr:%d,trainClsLoss:%f,trainRegLoss:%f, trainTotalLoss:%f, trainTotalVar:%f" % (i,trainClsLoss,trainSoftResLoss, trainTotalLoss, trainTotalVar))
+            print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testSoftResLoss, testTotalLoss, testTotalVar)) 
+            # save model
+            if isSaveModel:
+                savemodelPath =  f"{savePath}{methodModel}{trMode}{arMode}{tlMode}{alMode}"
+                modelfileName = "model_{}_{}".format(methodModel,trialID)
+                savemodelDir = os.path.join(modelPath,savemodelPath)
+                saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
+                """
+                # update checkpoint
+                f = open(os.path.join(savemodelDir,"log.txt"),"a")
+                f.write(modelfileName + "-" +  "{}".format(i) + "\n")
+                f.write("trainLoss:{},trainVar:{},testLoss:{},testVar:{}\n".format(trainTotalLoss,trainTotalVar,testTotalLoss,testTotalVar))
+                f.close()
+                """
+            if not flag:
+                trainResLosses,testResLosses = trainSoftResLoss[np.newaxis],testSoftResLoss[np.newaxis]
+                trainClassLosses,testClassLosses = trainClsLoss[np.newaxis],testClsLoss[np.newaxis]
+                trainTotalLosses, testTotalLosses = trainTotalLoss[np.newaxis],testTotalLoss[np.newaxis]
+                flag = True
+            else:
+                trainResLosses,testResLosses = np.hstack([trainResLosses,trainSoftResLoss[np.newaxis]]),np.hstack([testResLosses,testSoftResLoss[np.newaxis]])
+                trainClassLosses,testClassLosses = np.hstack([trainClassLosses,trainClsLoss[np.newaxis]]),np.hstack([testClassLosses,testClsLoss[np.newaxis]])
+                trainTotalLosses,testTotalLosses = np.hstack([trainTotalLosses,trainTotalLoss[np.newaxis]]),np.hstack([testTotalLosses,testTotalLoss[np.newaxis]])
+
+            savefilePath = "{}_{}_{}_{}_{}_{}_{}_{}_{}".format(i,dataName,methodModel,nClass,batchSize,trMode,arMode,tlMode,alMode,l1Mode,l2Mode,trialID)
+        
+            myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
+            
+            
 # ------------------------- plot loss & toydata ------------------------- #
 if methodModel == 0:
     
@@ -1045,7 +1208,7 @@ if methodModel == 0:
             #pickle.dump(testTotalVar,fp)
             pickle.dump(trainRegLosses,fp)
             pickle.dump(testRegLosses,fp)
-    # ----------------------------------------------------------------------- #
+# ----------------------------------------------------------------------- #
 elif methodModel == 1:
     
     if dataMode == 0:
@@ -1081,9 +1244,7 @@ elif methodModel == 1:
             pickle.dump(testResLosses,fp)
             pickle.dump(trainTotalLosses,fp)
             pickle.dump(testTotalLosses,fp)
-    
 # ----------------------------------------------------------------------- #
-
 elif methodModel == 2: 
     
     if dataMode == 0:
@@ -1120,8 +1281,42 @@ elif methodModel == 2:
             pickle.dump(testResLosses,fp)
             pickle.dump(trainTotalLosses,fp)
             pickle.dump(testTotalLosses,fp)
-
 # ----------------------------------------------------------------------- # 
+elif methodModel == 3: 
+    
+    if dataMode == 0:
+        savefilePath = f"{dataName}_{methodModel}_{sigma}_{nClass}_{pNum}_{batchSize}_{nData}_{trainRatio}_{trMode}_{arMode}_{tlMode}_{alMode}_{trialID}"
+        myPlot.Plot_3D(myData.xTest[:,0],myData.xTest[:,1],myData.yTest,testPred, isPlot=isPlot, savefilePath=savefilePath)
+    else:
+        savefilePath = f"{i}_{dataName}_{methodModel}_{nClass}_{batchSize}_{trMode}_{arMode}_{tlMode}_{alMode}_{l1Mode}_{l2Mode}_{trialID}"
+        myPlot.Plot_Scatter(myData.yTest,testPred,isPlot=isPlot,savefilePath=savefilePath)
+        
+    myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
+    
+    if isEval:
+        with open(os.path.join(evalFullPath,f"{savefilePath}.pkl"),"wb") as fp:
+            pickle.dump(myData.xEval,fp)
+            pickle.dump(evalPred,fp) 
+            pickle.dump(evalClsCenter,fp)
+            pickle.dump(evalResPred,fp)
+    
+    if isSavePkl:
+        with open(os.path.join(pickleFullPath,"test_{}.pkl".format(savefilePath)),"wb") as fp:
+            #pickle.dump(batchY,fp)
+            #pickle.dump(trainPred,fp)
+            pickle.dump(myData.xTest,fp)
+            pickle.dump(myData.yTest,fp)
+            pickle.dump(testPred,fp)
+            pickle.dump(testClsCenter,fp)
+            pickle.dump(testSoftResPred,fp)
+            #pickle.dump(trainTotalVar,fp)
+            #pickle.dump(testTotalVar,fp)
+            pickle.dump(trainClassLosses,fp)
+            pickle.dump(testClassLosses,fp)
+            pickle.dump(trainResLosses,fp)
+            pickle.dump(testResLosses,fp)
+            pickle.dump(trainTotalLosses,fp)
+            pickle.dump(testTotalLosses,fp)
 # ----------------------------------------------------------------------- # 
 
  
