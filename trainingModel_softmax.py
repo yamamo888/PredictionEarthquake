@@ -543,7 +543,7 @@ def SoftTruncatedResidual(r,reuse=False):
         
         # positive, center, negative indexes
         positive_index = tf.where(r>=tr)
-        center_index = tf.where(tl>r>tr)
+        center_index = tf.where((tl>r)&(r>tr))
         negative_index = tf.where(tl>=r)
         
         # SReLU (x => tr)
@@ -1153,7 +1153,7 @@ for i in range(nTraining):
             print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testSoftResLoss, testTotalLoss, testTotalVar)) 
             # save model
             if isSaveModel:
-                savemodelPath =  f"{savePath}{methodModel}{trMode}{arMode}{tlMode}{alMode}"
+                savemodelPath =  f"{savePath}soft"
                 modelfileName = "model_{}_{}".format(methodModel,trialID)
                 savemodelDir = os.path.join(modelPath,savemodelPath)
                 saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
