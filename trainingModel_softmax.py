@@ -533,7 +533,7 @@ def SoftTruncatedResidual(r,reuse=False):
     with tf.variable_scope('SoftTrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
-        
+        pdb.set_trace() 
         # ---- param ---- #
         tr = hparam_variable("trparam",[dOutput],trMode,stddevMode)
         tl = hparam_variable("tlparam",[dOutput],tlMode,stddevMode)
@@ -547,11 +547,13 @@ def SoftTruncatedResidual(r,reuse=False):
         negative_index = tf.where(tl>=r)
         
         # SReLU (x => tr)
-        positive = tr + ar * (tf.gather_nd(r,positive_index) - tr) 
+        #positive = tr + ar * (tf.gather_nd(r,positive_index) - tr) 
+        positive = ar * (tf.gather_nd(r,positive_index) 
         # SReLU (tl > x > tr)
         center = tf.gather_nd(r,center_index)
         # SReLU (x <= tl)
-        negative = tl + al * (tf.gather_nd(r,negative_index) - tl)
+        #negative = tl + al * (tf.gather_nd(r,negative_index) - tl)
+        negative = al * (tf.gather_nd(r,negative_index)
         
         # SReLU
         soft_r_at = positive + center + negative
@@ -610,7 +612,7 @@ def SoftReduce(soft_r_at,p_ind,c_ind,n_ind,thr,sr,thl,sl,reuse=False):
     with tf.variable_scope('SoftTrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
-        
+        pdb.set_trace()
         # positive,center,negative soft truncated residual
         positive_r_at = tf.gather_nd(soft_r_at,tf.where(p_ind))
         center_r_at = tf.gather_nd(soft_r_at,tf.where(c_ind))
