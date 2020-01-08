@@ -116,6 +116,12 @@ nRegHidden3 = 128
 # node of 4 hidden
 nRegHidden4 = 128
 
+# cell index
+nI = 0
+tnI = 1
+tI = 2
+
+
 if methodModel == 2 and methodModel == 3:
     isATR = True
 else:
@@ -520,7 +526,7 @@ def SoftTruncatedResidual(r,reuse=False):
         [Deep Learning with S-shaped Rectified Linear Activation Units] (http://arxiv.org/abs/1512.07030)
     
     Args:
-        r: residual
+        r: residual, shape=[cell(3),]
         reuse=False: Train, reuse=True: Evaluation & Test (alpha sharing)
         tr: initialization function for the right part intercept
         tl: initialization function for the left part intercept
@@ -535,30 +541,52 @@ def SoftTruncatedResidual(r,reuse=False):
             scope.reuse_variables()
         pdb.set_trace() 
         # ---- param ---- #
+        # [nCell,]
         tr = hparam_variable("trparam",[dOutput],trMode,stddevMode)
         tl = hparam_variable("tlparam",[dOutput],tlMode,stddevMode)
         ar = hparam_variable("arparam",[dOutput],arMode,stddevMode)
         al = hparam_variable("alparam",[dOutput],alMode,stddevMode)
         # --------------- #
         
-        # positive, center, negative indexes
-        positive_index = tf.where(r>=tr)
-        center_index = tf.where((tl>r)&(r>tr))
-        negative_index = tf.where(tl>=r)
+        # positive, center, negative indexes for each cell
+        pos_ind_nk = tf.where(r[:,nI]>=tr[nI])
+        pos_ind_tnk = tf.where(r[:,tnI]>=tr[tnI])
+        pos_ind_tk = tf.where(r[:,tI]>=tr[tI])
         
-        # SReLU (x => tr)
-        #positive = tr + ar * (tf.gather_nd(r,positive_index) - tr) 
-        positive = ar * (tf.gather_nd(r,positive_index) 
-        # SReLU (tl > x > tr)
-        center = tf.gather_nd(r,center_index)
-        # SReLU (x <= tl)
-        #negative = tl + al * (tf.gather_nd(r,negative_index) - tl)
-        negative = al * (tf.gather_nd(r,negative_index)
+        cent_ind_nk = tf.where((tl[nI]>r[:,nI])&(r[:,nI]>tr[nI]))
+        cent_ind_tnk = tf.where((tl[tnI]>r[:,tnI])&(r[:,tnI]>tr[tnI]))
+        cent_ind_tk = tf.where((tl[tI]>r[:,tI])&(r[:,tI]>tr[tI]))
+        
+        neg_ind_nk = tf.where(tl[nI]>=r[:,nI])
+        neg_ind_tnk = tf.where(tl[tnI]>=r[:,tnI])
+        neg_ind_tk = tf.where(tl[tI]>=r[:,tI])
+        
+        # SReLU (x => tr), y = ar * x
+        pos_nk = (ar[nI] * tf.gather_nd(r[:,nI],pos_ind_nk)) + tr[nI] 
+        pos_tnk = (ar[tnI] * tf.gather_nd(r[:,tnI],pos_ind_tnk)) + tr[tnI]
+        pos_tk = (ar[tI] * tf.gather_nd(r[:,tI],pos_ind_tk)) + tr[tI]
+        
+        # SReLU (tl > x > tr), y = x
+        cent_nk = tf.gather_nd(r[:,nI],cent_ind_nk)
+        cent_tnk = tf.gather_nd(r[:,tnI],cent_ind_tnk)
+        cent_tk = tf.gather_nd(r[:,tI],cent_ind_tk)
+        
+        # SReLU (x <= tl),  y = al * x 
+        neg_nk = (al[nI] * tf.gather_nd(r[:,nI],neg_ind_nk)) + tl[nI]
+        neg_tnk = (al[tnI] * tf.gather_nd(r[:,tnI],neg_ind_tnk)) + tl[tnI]
+        neg_tk = (al[tI] * tf.gather_nd(r[:,tI],neg_ind_tk)) + tl[tI]
+        
+        # [number of data,3(=cell)]
+        positive =  tf.concat(tf.expand_dims(pos_nk,1),tf.expand_dims(pos_tnk,1),tf.expand_dims(pos_tk,1),1) 
+        center = tf.concat(tf.expand_dims(cent_nk,1),tf.expand_dims(cent_tnk,1),tf.expand_dims(cent_tk,1),1)
+        negative = tf.concat(tf.expand_dims(neg_nk,1),tf.expand_dims(neg_tnk,1),tf.expand_dims(neg_tk,1),1)
         
         # SReLU
         soft_r_at = positive + center + negative
         
-        return soft_r_at, positive_index, center_index, negative_index, tr, ar, tl, al
+        # truncated residual, positive indexes each cell, center, negative, slope, index shape=[3,], positive all cell, center, negative, positive each cell, center, negative
+        return soft_r_at, (pos_ind_nk,pos_ind_tnk,pos_ind_tk), (cent_ind_nk,cent_ind_tnk,cent_ind_tk), (neg_ind_nk,neg_ind_tnk,neg_ind_tk), tr, ar, tl, al, positive, center, negative
+        #return soft_r_at, (pos_ind_nk,pos_ind_tnk,pos_ind_tk), (cent_ind_nk,cent_ind_tnk,cent_ind_tk), (neg_ind_nk,neg_ind_tnk,neg_ind_tk), tr, ar, tl, al
 #-----------------------------------------------------------------------------#
 def EvalAlpha(alpha_base,reuse=False):
     with tf.variable_scope('TrResidual') as scope:  
@@ -591,17 +619,15 @@ def Reduce(r_at,param,reuse=False):
         
         return pred_r
 #-----------------------------------------------------------------------------#
-def SoftReduce(soft_r_at,p_ind,c_ind,n_ind,thr,sr,thl,sl,reuse=False):
+def SoftReduce(sr_at,pos_inds,cent_inds,neg_inds,thr,sr,thl,sl,reuse=False):
     """
     Reduce truncated residual(=r_at) to residual(=pred_r).
     
     Args:
-        soft_r_at: soft truncated residual
-        p_ind: positive index
-        c_ind: center index
-        n_ind: negative index
-        thr: initialization function for the right part intercept
-        sr: initialization function for the right part slope
+        sr_at: soft truncated residual
+        
+        thr: initialization function for the right part intercept, shape=[3,]
+        sr: initialization function for the right part slope, shape=[3,]
         thl: initialization function for the left part intercept
         sl: initialization function for the left part slope
         reuse=False: Train, reuse=True: Evaluation & Test (alpha sharing)
@@ -609,23 +635,48 @@ def SoftReduce(soft_r_at,p_ind,c_ind,n_ind,thr,sr,thl,sl,reuse=False):
     Returns:
         pred_soft_r: reduce soft residual 
     """
+    
     with tf.variable_scope('SoftTrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
         pdb.set_trace()
-        # positive,center,negative soft truncated residual
-        positive_r_at = tf.gather_nd(soft_r_at,tf.where(p_ind))
-        center_r_at = tf.gather_nd(soft_r_at,tf.where(c_ind))
-        negative_r_at = tf.gather_nd(soft_r_at,tf.where(n_ind))
         
-        # reduce positive,center,negative
-        positive_r = ((positive_r_at - thr)/sr) + thr
-        center_r = center_r_at
-        negative_r = ((negative_r_at - thl)/sl) + thl
+        # get positive, center, negative index -> softTruncated[index]
+        pos_sr_nk = tf.gather_nd(sr_at,tf.where(pos_inds[nI]))
+        pos_sr_tnk = tf.gather_nd(sr_at,tf.where(pos_inds[tnI]))
+        pos_sr_tk = tf.gather_nd(sr_at,tf.where(pos_inds[tI]))
         
+        cent_sr_nk = tf.gather_nd(sr_at,tf.where(cent_inds[nI]))
+        cent_sr_tnk = tf.gather_nd(sr_at,tf.where(cent_inds[tnI]))
+        cent_sr_tk = tf.gather_nd(sr_at,tf.where(cent_inds[tI]))
+        
+        neg_sr_nk = tf.gather_nd(sr_at,tf.where(neg_inds[nI]))
+        neg_sr_tnk = tf.gather_nd(sr_at,tf.where(neg_inds[tnI]))
+        neg_sr_tk = tf.gather_nd(sr_at,tf.where(neg_inds[tI]))
+        
+        # reduce positive, center, negative
+        pos_rsr_nk = (pos_sr_nk - thr[nI])/sr[nI]
+        pos_rsr_tnk = (pos_sr_tnk - thr[tnI])/sr[tnI]
+        pos_rsr_tk = (pos_sr_tk - thr[tI])/sr[tI]
+        
+        cent_rsr_nk = cent_sr_nk
+        cent_rsr_tnk = cent_sr_tnk
+        cent_rsr_tk = cent_sr_tk
+        
+        neg_rsr_nk = (neg_sr_nk - thl[nI])/sl[nI]
+        neg_rsr_tnk = (neg_sr_tnk - thl[tnI])/sl[tnI]
+        neg_rsr_tk = (neg_sr_tk - thl[tI])/sl[tI]
+        
+        # [number of data,3(=cell)]
+        positive_r =  tf.concat(tf.expand_dims(pos_rsr_nk,1),tf.expand_dims(pos_rsr_tnk,1),tf.expand_dims(pos_rsr_tk,1),1) 
+        center_r = tf.concat(tf.expand_dims(cent_rsr_nk,1),tf.expand_dims(cent_rsr_tnk,1),tf.expand_dims(cent_rsr_tk,1),1)
+        negative_r = tf.concat(tf.expand_dims(neg_rsr_nk,1),tf.expand_dims(neg_rsr_tnk,1),tf.expand_dims(neg_rsr_tk,1),1)
+        
+        # SReLU
         pred_soft_r = positive_r + center_r + negative_r
         
-        return pred_soft_r
+        #return pred_soft_r
+        return pred_soft_r, pos_inds, cent_inds, neg_inds, (pos_sr_nk,pos_sr_tnk,pos_sr_tk), (cent_sr_nk,cent_sr_tnk,cent_sr_tk), (neg_sr_nk,neg_sr_tnk,neg_sr_tk), thr, sr, thl, sl, positive_r, center_r, negative_r
 #-----------------------------------------------------------------------------#
 def Loss(y,predict,isCE=False):
     """
@@ -710,12 +761,19 @@ res_atr, alpha = TruncatedResidual(res,alpha_base)
 res_atr_test, alpha_test = TruncatedResidual(res_test,alpha_base,reuse=True)
 alpha_eval = EvalAlpha(alpha_base,reuse=True)
 
-# =================== Soft Truncated residual ================================ #
-res_soft_atr, pos_ind, cent_ind, neg_ind, pos_threshold, pos_slope, neg_threshold, neg_slope = SoftTruncatedResidual(res)
-res_soft_atr_test, pos_ind_test, cent_ind_test, neg_ind_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test = SoftTruncatedResidual(res_test,reuse=True)
-#alpha_eval = EvalAlpha(alpha_base,reuse=True)
+# =================== Soft Truncated residual =============================== #
+# 分析終わった以下使う
+#res_soft_atr, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope = SoftTruncatedResidual(res)
+#res_soft_atr_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test = SoftTruncatedResidual(res_test,reuse=True)
 
-# ================== Reduce truncated residual ========================== #
+res_soft_atr, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, pos, cent, neg = SoftTruncatedResidual(res)
+res_soft_atr_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_test, cent_test, neg_test = SoftTruncatedResidual(res_test,reuse=True)
+# =========================================================================== #
+
+
+pdb.set_trace()
+
+# ===================== Reduce truncated residual =========================== #
 # IN -> reg_res: predicted truncated regression
 # OUT -> reduce_res: reduced residual, [None,1] 
 reduce_res_op = Reduce(reg_res,alpha,reuse=True)
@@ -726,18 +784,23 @@ reduce_res_op_eval = Reduce(reg_res_eval,alpha_eval,reuse=True)
 pred_y = pred_cls_center + reduce_res_op
 pred_y_test = pred_cls_center_test + reduce_res_op_test
 pred_y_eval = pred_cls_center_eval + reduce_res_op_eval
-
-# ================== Reduce soft truncated residual ========================== #
-reduce_soft_res_op = SoftReduce(reg_res, pos_ind,cent_ind,neg_ind,pos_threshold, pos_slope, neg_threshold, neg_slope, reuse=True)
-reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_ind_test, cent_ind_test, neg_ind_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
+# =========================================================================== #
+        
+# ================== Reduce soft truncated residual ========================= #
+# 分析終わったら以下使う
+#reduce_soft_res_op = SoftReduce(reg_res, pos_inds,cent_inds,neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, reuse=True)
+#reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
 #reduce_soft_res_op_eval = SoftReduce(reg_res_eval,alpha_eval,reuse=True)
 
-# predicted y by ATR-Nets
+reduce_soft_res_op, pinds, cinds, ninds, psrs, csrs, nsrs, pt, ps, nt, ns, psr, csr, nsr  = SoftReduce(reg_res, pos_inds,cent_inds,neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, reuse=True)
+reduce_soft_res_op_test, pinds_test, cinds_test, ninds_test, psrs_test, csrs_test, nsrs_test, pt_test, ps_test, nt_test, ns_test, psr_test, csr_test, nsr_test = SoftReduce(reg_res_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
+
+# predicted y by SATR-Nets
 pred_soft_y = pred_cls_center + reduce_soft_res_op
 pred_soft_y_test = pred_cls_center_test + reduce_soft_res_op_test
 #pred_soft_y_eval = pred_cls_center_eval + reduce_res_op_eval
 
-# ============================= Loss ==================================== #
+# =============================== Loss ====================================== #
 # Classification loss
 # gt label (y_label) vs predicted label (cls_op)
 loss_cls = Loss(y_label,cls_op,isCE=True)
@@ -784,6 +847,7 @@ loss_atr_l2_test = loss_atr_test + res_l2_test
 # Regression Loss for Soft ATR-Nets
 loss_soft_atr = Loss(res_soft_atr,reg_res)
 loss_soft_atr_test = Loss(res_soft_atr_test,reg_res_test)
+# =========================================================================== #
 
 # Training alpha loss
 # gt value (y) vs predicted value (pred_yz = pred_cls_center + reduce_res)
@@ -803,7 +867,7 @@ _, var_test = tf.nn.moments(grad_x_test[0],[0])
 loss_alpha = max_grad_x #tf.reduce_sum(var_train)
 loss_alpha_test = Loss(y,pred_y_test) + max_grad_x_test #tf.reduce_sum(var_test)
 
-# ========================== Optimizer ================================== #
+# ============================ Optimizer ==================================== #
 # for classification 
 trainer_cls = Optimizer(loss_cls,name_scope="Classify")
 
@@ -839,6 +903,8 @@ trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
 # for soft ATR-Nets regression
 trainer_soft_atr = Optimizer(loss_soft_atr,name_scope="ResidualRegress")
+# =========================================================================== #
+
 
 #------------------------------------------------------------------------ # 
 if isSaveModel:
@@ -1122,9 +1188,12 @@ for i in range(nTraining):
             myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
     # ======================== Soft Atr-Nets ================================= #
     elif methodModel == 3:
-        # fixing params
-        _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred = \
-        sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+        # 分析終わったら以下使う fixing params
+        #_, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred = \
+        #sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+
+        _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posInds, centInds, negInds, posThreshold, posSlope, negThreshold, negSlope, Pos, Cent, Neg, pInds, cInds, nInds, pSrs, cSrs, nSrs, pT, pS, nT, nS, pSr, cSr, nSr = \
+        sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, pos, cent, neg, pinds, cinds, ninds, psrs, csrs, nsrs, pt, ps, nt, ns, psr, csr, nsr ],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
         trainPred = trainClsCenter + trainSoftRResPred
         trainTotalLoss = np.mean(np.square(batchY - trainPred))
@@ -1133,7 +1202,7 @@ for i in range(nTraining):
         # -------------------- Test ------------------------------------- #
         if i % testPeriod == 0:
             #------------
-            # no
+            # ※ no
             if isEval: 
                 evalClsCenter, evalResPred, evalAlpha, evalRResPred = \
                 sess.run([pred_cls_center_eval, reg_res_eval, alpha_eval, reduce_res_op_eval],feed_dict={x_cls_eval:myData.xEval,alpha_base:alpha_base_value})
@@ -1141,8 +1210,8 @@ for i in range(nTraining):
                 print("----")
                 print(evalPred[:10,0])
             
-            testClsCenter, testSoftRes, testSoftResPred, testClsLoss, testSoftResLoss, testSoftRResPred = \
-            sess.run([pred_cls_center_test, res_soft_atr_test, reg_res_test, loss_cls_test, loss_soft_atr_test, reduce_soft_res_op_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+            testClsCenter, testSoftRes, testSoftResPred, testClsLoss, testSoftResLoss, testSoftRResPred, testposInds, testcentInds, testnegInds, testposThreshold, testposSlope, testnegThreshold, testnegSlope, testPos, testCent, testNeg, testpInds, testcInds, testnInds, testpSrs, testcSrs, testnSrs, testpT, testpS, testnT, testnS, testpSr, testcSr, testnSr = \
+            sess.run([pred_cls_center_test, res_soft_atr_test, reg_res_test, loss_cls_test, loss_soft_atr_test, reduce_soft_res_op_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_test, cent_test, neg_test, pinds_test, cinds_test, ninds_test, psrs_test, csrs_test, nsrs_test, pt_test, ps_test, nt_test, ns_test, psr_test, csr_test, nsr_test ],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
             
             # Recover
             testPred = testClsCenter + testSoftRResPred
