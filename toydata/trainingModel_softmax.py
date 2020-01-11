@@ -83,6 +83,8 @@ elif int(myArgs[0]) == 1:
 resultPath = "results"
 modelPath = "models"
 visualPath = "visualization"
+imgPath = "images"
+residualPath =  "residual"
 
 if dataMode == 0:
     savePath = "toypickles"
@@ -163,7 +165,7 @@ else:
     # Width class
     beta = np.round((nkMax - nkMin) / nClass,limitdecimal)
     dataName = f"nankai_{trialID}"
-    nTraining = 1000
+    nTraining = 100
     # if evaluate nanakai data == True
     isEval = False
 print(dataName)
@@ -547,29 +549,29 @@ def SoftTruncatedResidual(r,reuse=False):
         al = hparam_variable("alparam",[dOutput],alMode,stddevMode)
         # --------------- #
 
-        # positive, center, negative indexes for each cell
-        pos_ind_nk = tf.where(r[:,nI]>=tr[nI])
-        pos_ind_tnk = tf.where(r[:,tnI]>=tr[tnI])
-        pos_ind_tk = tf.where(r[:,tI]>=tr[tI])
+        # True or False
+        pos_bool_nk = (r[:,nI]>=tr[nI])
+        pos_bool_tnk = (r[:,tnI]>=tr[tnI])
+        pos_bool_tk = (r[:,tI]>=tr[tI])
+
+        cent_bool_nk = ((tl[nI]<r[:,nI])&(r[:,nI]<tr[nI]))
+        cent_bool_tnk = ((tl[tnI]<r[:,tnI])&(r[:,tnI]<tr[tnI]))
+        cent_bool_tk = ((tl[tI]<r[:,tI])&(r[:,tI]<tr[tI]))
         
-        cent_ind_nk = tf.where((tl[nI]>r[:,nI])&(r[:,nI]>tr[nI]))
-        cent_ind_tnk = tf.where((tl[tnI]>r[:,tnI])&(r[:,tnI]>tr[tnI]))
-        cent_ind_tk = tf.where((tl[tI]>r[:,tI])&(r[:,tI]>tr[tI]))
-        
-        neg_ind_nk = tf.where(tl[nI]>=r[:,nI])
-        neg_ind_tnk = tf.where(tl[tnI]>=r[:,tnI])
-        neg_ind_tk = tf.where(tl[tI]>=r[:,tI])
+        neg_bool_nk = (tl[nI]>=r[:,nI])
+        neg_bool_tnk = (tl[tnI]>=r[:,tnI])
+        neg_bool_tk = (tl[tI]>=r[:,tI])
 
-        soft_r_nk = tf.where((tl[nI]>r[:,nI])&(r[:,nI]>tr[nI]), r[:,nI], tf.where(r[:,nI]>=tr[nI], ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
-        soft_r_tnk = tf.where((tl[tnI]>r[:,tnI])&(r[:,tnI]>tr[tnI]), r[:,tnI], tf.where(r[:,tnI]>=tr[nI],ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
-        soft_r_tk = tf.where((tl[tI]>r[:,tI])&(r[:,tI]>tr[tI]), r[:,tI], tf.where(r[:,tI]>=tr[tI],ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
+        # Soft truncated residual nankai, tonankai, tokai
+        soft_r_nk = tf.where(cent_bool_nk, r[:,nI], tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
+        soft_r_tnk = tf.where(cent_bool_tnk, r[:,tnI], tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
+        soft_r_tk = tf.where(cent_bool_tk, r[:,tI], tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
 
-
+        # Soft truncated residual all cell
         soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
 
-
         # truncated residual, positive indexes each cell, center, negative, slope, index shape=[3,], positive all cell, center, negative, positive each cell, center, negative
-        return soft_r_at, (pos_ind_nk,pos_ind_tnk,pos_ind_tk), (cent_ind_nk,cent_ind_tnk,cent_ind_tk), (neg_ind_nk,neg_ind_tnk,neg_ind_tk), tr, ar, tl, al, soft_r_nk, soft_r_tnk, soft_r_tk
+        return soft_r_at, tr, ar, tl, al, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
 
 #-----------------------------------------------------------------------------#
 def EvalAlpha(alpha_base,reuse=False):
@@ -603,7 +605,7 @@ def Reduce(r_at,param,reuse=False):
         
         return pred_r
 #-----------------------------------------------------------------------------#
-def SoftReduce(sr_at,pos_inds,cent_inds,neg_inds,thr,sr,thl,sl,reuse=False):
+def SoftReduce(sr_at,thr,sr,thl,sl,pos_bools,cent_bools,reuse=False):
     """
     Reduce truncated residual(=r_at) to residual(=pred_r).
     
@@ -623,42 +625,14 @@ def SoftReduce(sr_at,pos_inds,cent_inds,neg_inds,thr,sr,thl,sl,reuse=False):
     with tf.variable_scope('SoftTrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
+
+        rsoft_r_nk = tf.where(cent_bools[nI],sr_at[:,nI],tf.where(pos_bools[nI],(sr_at[:,nI] - thr[nI])/sr[nI],(sr_at[:,nI] - thl[nI])/sl[nI]))
+        rsoft_r_tnk = tf.where(cent_bools[tnI],sr_at[:,tnI],tf.where(pos_bools[nI],(sr_at[:,tnI] - thr[nI])/sr[nI],(sr_at[:,tnI] - thl[nI])/sl[nI]))
+        rsoft_r_tk = tf.where(cent_bools[tI],sr_at[:,tI],tf.where(pos_bools[nI],(sr_at[:,tI] - thr[nI])/sr[nI],(sr_at[:,tI] - thl[nI])/sl[nI]))
+ 
+        rsoft_r_at = tf.concat([tf.expand_dims(rsoft_r_nk,1),tf.expand_dims(rsoft_r_tnk,1),tf.expand_dims(rsoft_r_tk,1)],1)
         
-        # get positive, center, negative index -> softTruncated[index]
-        pos_sr_nk = tf.gather_nd(sr_at,tf.where(pos_inds[nI]))
-        pos_sr_tnk = tf.gather_nd(sr_at,tf.where(pos_inds[tnI]))
-        pos_sr_tk = tf.gather_nd(sr_at,tf.where(pos_inds[tI]))
-        
-        cent_sr_nk = tf.gather_nd(sr_at,tf.where(cent_inds[nI]))
-        cent_sr_tnk = tf.gather_nd(sr_at,tf.where(cent_inds[tnI]))
-        cent_sr_tk = tf.gather_nd(sr_at,tf.where(cent_inds[tI]))
-        
-        neg_sr_nk = tf.gather_nd(sr_at,tf.where(neg_inds[nI]))
-        neg_sr_tnk = tf.gather_nd(sr_at,tf.where(neg_inds[tnI]))
-        neg_sr_tk = tf.gather_nd(sr_at,tf.where(neg_inds[tI]))
-        
-        # reduce positive, center, negative
-        pos_rsr_nk = (pos_sr_nk - thr[nI])/sr[nI]
-        pos_rsr_tnk = (pos_sr_tnk - thr[tnI])/sr[tnI]
-        pos_rsr_tk = (pos_sr_tk - thr[tI])/sr[tI]
-        
-        cent_rsr_nk = cent_sr_nk
-        cent_rsr_tnk = cent_sr_tnk
-        cent_rsr_tk = cent_sr_tk
-        
-        neg_rsr_nk = (neg_sr_nk - thl[nI])/sl[nI]
-        neg_rsr_tnk = (neg_sr_tnk - thl[tnI])/sl[tnI]
-        neg_rsr_tk = (neg_sr_tk - thl[tI])/sl[tI]
-        
-        # [number of data,3(=cell)]
-        positive_r =  tf.concat([tf.expand_dims(pos_rsr_nk,1),tf.expand_dims(pos_rsr_tnk,1),tf.expand_dims(pos_rsr_tk,1)],1) 
-        center_r = tf.concat([tf.expand_dims(cent_rsr_nk,1),tf.expand_dims(cent_rsr_tnk,1),tf.expand_dims(cent_rsr_tk,1)],1)
-        negative_r = tf.concat([tf.expand_dims(neg_rsr_nk,1),tf.expand_dims(neg_rsr_tnk,1),tf.expand_dims(neg_rsr_tk,1)],1)
-        
-        # SReLU
-        pred_soft_r = positive_r + center_r + negative_r
-        
-        return pred_soft_r, pos_inds, cent_inds, neg_inds, (pos_sr_nk,pos_sr_tnk,pos_sr_tk), (cent_sr_nk,cent_sr_tnk,cent_sr_tk), (neg_sr_nk,neg_sr_tnk,neg_sr_tk), thr, sr, thl, sl, positive_r, center_r, negative_r
+        return rsoft_r_at
 #-----------------------------------------------------------------------------#
 def Loss(y,predict,isCE=False):
     """
@@ -753,8 +727,8 @@ alpha_eval = EvalAlpha(alpha_base,reuse=True)
 # 分析終わった以下使う
 #res_soft_atr, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope = SoftTruncatedResidual(res)
 #res_soft_atr_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test = SoftTruncatedResidual(res_test,reuse=True)
-res_soft_atr, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, pos, cent, neg = SoftTruncatedResidual(res)
-res_soft_atr_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_test, cent_test, neg_test = SoftTruncatedResidual(res_test,reuse=True)
+res_soft_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, pos_bools, cent_bools  = SoftTruncatedResidual(res)
+res_soft_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,reuse=True)
 # =========================================================================== #
 
 # ===================== Reduce truncated residual =========================== #
@@ -776,8 +750,8 @@ pred_y_eval = pred_cls_center_eval + reduce_res_op_eval
 #reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
 #reduce_soft_res_op_eval = SoftReduce(reg_res_eval,alpha_eval,reuse=True)
 
-reduce_soft_res_op, pinds, cinds, ninds, psrs, csrs, nsrs, pt, ps, nt, ns, psr, csr, nsr  = SoftReduce(reg_res, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, reuse=True)
-reduce_soft_res_op_test, pinds_test, cinds_test, ninds_test, psrs_test, csrs_test, nsrs_test, pt_test, ps_test, nt_test, ns_test, psr_test, csr_test, nsr_test  = SoftReduce(reg_res_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
+reduce_soft_res_op = SoftReduce(reg_res, pos_threshold, pos_slope, neg_threshold, neg_slope, pos_bools, cent_bools, reuse=True)
+reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_bools_test, cent_bools_test, reuse=True)
 
 #pdb.set_trace()
 
@@ -1081,9 +1055,12 @@ for i in range(nTraining):
 
             else:
                  # fixing alpha
-                 _, _, trainClsCenter, trainCls, trainRes, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainRResPred, posInds, posThreshold, posSlope, Pos, pInds, pSrs, pT, pS, pSr = \
-                 sess.run([trainer_cls, trainer_atr,  pred_cls_center,  cls_op, res_atr, reg_res, alpha, loss_cls, loss_atr, reduce_res_op, pos_inds, pos_threshold, pos_slope, pos, pinds, psrs, pt, ps, psr],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
+                 #_, _, trainClsCenter, trainCls, trainRes, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainRResPred, posInds, centInds, negInds, posThreshold, posSlope, negThreshold, negSlope, Pos, Cent, Neg, pInds, cInds, nInds, pSrs, cSrs, nSrs, pT, pS, pSr, cSr, nSr = \
+                 #sess.run([trainer_cls, trainer_atr,  pred_cls_center,  cls_op, res_atr, reg_res, alpha, loss_cls, loss_atr, reduce_res_op, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, pos, cent, neg, pinds, cinds, ninds, psrs, csrs, nsrs, pt, ps, psr, csr, nsr],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
 
+                 _, _, trainClsCenter, trainCls, trainRes, trainResPred, trainAlpha, trainClsLoss, trainResLoss, trainRResPred  = \
+                 sess.run([trainer_cls, trainer_atr,  pred_cls_center,  cls_op, res_atr, reg_res, alpha, loss_cls, loss_atr, reduce_res_op], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY,alpha_base:alpha_base_value})
+            
             #_, trainAlpha, trainAlphaLoss, grad_x_value, max_grad_x_value = \
             #sess.run([trainer_alpha, alpha, loss_alpha, grad_x, max_grad_x],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
@@ -1180,12 +1157,11 @@ for i in range(nTraining):
         #_, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred = \
         #sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
-        """_, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posInds, centInds, negInds, posThreshold, posSlope, negThreshold, negSlope, Pos, Cent, Neg, pInds, cInds, nInds, pSrs, cSrs, nSrs, pT, pS, nT, nS, pSr, cSr, nSr = \
-        sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, pos, cent, neg, pinds, cinds, ninds, psrs, csrs, nsrs, pt, ps, nt, ns, psr, csr, nsr ],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})"""
+        _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, Residual, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posThreshold, posSlope, negThreshold, negSlope = \
+        sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, res, loss_cls, loss_soft_atr, reduce_soft_res_op, pos_threshold, pos_slope, neg_threshold, neg_slope], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
-        _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posInds, posThreshold, posSlope, Pos, pInds, pSrs, pT, pS, pSr = \
-        sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op, pos_inds, pos_threshold, pos_slope, pos, pinds, psrs, pt, ps, psr ],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
         
+        #pdb.set_trace()
         trainPred = trainClsCenter + trainSoftRResPred
         trainTotalLoss = np.mean(np.square(batchY - trainPred))
         trainTotalVar  = np.var(np.square(batchY - trainPred))
@@ -1201,18 +1177,39 @@ for i in range(nTraining):
                 print("----")
                 print(evalPred[:10,0])
             
-            testClsCenter, testSoftRes, testSoftResPred, testClsLoss, testSoftResLoss, testSoftRResPred, testposInds, testcentInds, testnegInds, testposThreshold, testposSlope, testnegThreshold, testnegSlope, testPos, testCent, testNeg, testpInds, testcInds, testnInds, testpSrs, testcSrs, testnSrs, testpT, testpS, testnT, testnS, testpSr, testcSr, testnSr = \
-            sess.run([pred_cls_center_test, res_soft_atr_test, reg_res_test, loss_cls_test, loss_soft_atr_test, reduce_soft_res_op_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_test, cent_test, neg_test, pinds_test, cinds_test, ninds_test, psrs_test, csrs_test, nsrs_test, pt_test, ps_test, nt_test, ns_test, psr_test, csr_test, nsr_test ],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+            testClsCenter, testSoftRes, testSoftResPred, testResidual, testClsLoss, testSoftResLoss, testSoftRResPred, testposThreshold, testposSlope, testnegThreshold, testnegSlope = \
+            sess.run([pred_cls_center_test, res_soft_atr_test, reg_res_test, res_test, loss_cls_test, loss_soft_atr_test, reduce_soft_res_op_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
             
             # Recover
             testPred = testClsCenter + testSoftRResPred
             # total loss (mean) & variance
             testTotalLoss  = np.mean(np.square(myData.yTest - testPred))
             testTotalVar  = np.var(np.square(myData.yTest - testPred))
-            
             print("-----------------------------------")
             print("itr:%d,trainClsLoss:%f,trainRegLoss:%f, trainTotalLoss:%f, trainTotalVar:%f" % (i,trainClsLoss,trainSoftResLoss, trainTotalLoss, trainTotalVar))
-            print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testSoftResLoss, testTotalLoss, testTotalVar)) 
+            print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testSoftResLoss, testTotalLoss, testTotalVar))
+            #pdb.set_trace()
+
+            # ----------------------------------------------------------------------------
+            fig, figInds = plt.subplots(nrows=3,sharex=True)
+            for figInd in np.arange(len(figInds)):
+                figInds[figInd].hist(testResidual[:,figInd])
+
+            fig.suptitle(f"Max:{np.max(testResidual,0)}\n  Min:{np.min(testResidual,0)}")
+
+            plt.savefig(os.path.join(imgPath,residualPath,f"test{i}.png"))
+            plt.close()
+
+            fig, figInds = plt.subplots(nrows=3,sharex=True)
+            for figInd in np.arange(len(figInds)):
+                figInds[figInd].hist(Residual[:,figInd])
+
+            fig.suptitle(f"Max:{np.max(Residual,0)}\n  Min:{np.min(Residual,0)}")
+
+            plt.savefig(os.path.join(imgPath,residualPath,f"train{i}.png"))
+            plt.close()
+            # ----------------------------------------------------------------------------
+
             # save model
             if isSaveModel:
                 savemodelPath =  f"{savePath}soft"
