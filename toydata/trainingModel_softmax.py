@@ -165,7 +165,7 @@ else:
     # Width class
     beta = np.round((nkMax - nkMin) / nClass,limitdecimal)
     dataName = f"nankai_{trialID}"
-    nTraining = 200000
+    nTraining = 500
     # if evaluate nanakai data == True
     isEval = False
 print(dataName)
@@ -507,25 +507,19 @@ def TruncatedResidual(r,alpha_base,reuse=False):
         alpha: traincated adjustment parameter
     """
     
-    if methodModel == 3:
-        with tf.variable_scope('TrResidual') as scope:  
-            if reuse:
-                scope.reuse_variables()
+    with tf.variable_scope('TrResidual') as scope:  
+        if reuse:
+            scope.reuse_variables()
         
-            alpha = hparam_variable("alpha",[dOutput],alphaMode,stddevMode) 
-            alpha_final = tf.multiply(alpha,alpha_base)
+        alpha = hparam_variable("alpha",[dOutput],alphaMode,stddevMode) 
+        alpha_final = tf.multiply(alpha,alpha_base)
             
-            if istrainAlpha:
-                r_at = 1/(1 + tf.exp(- alpha_final * r))
-                return r_at, alpha_final
-            else:
-                r_at = 1/(1 + tf.exp(- alpha * r))
-                return r_at, alpha
-    
-    elif methodModel == 4:
-        r_at = 1/(1 + tf.exp(- alpha_base * r))
-        pdb.set_trace()
-        return r_at
+        if istrainAlpha:
+            r_at = 1/(1 + tf.exp(- alpha_final * r))
+            return r_at, alpha_final
+        else:
+            r_at = 1/(1 + tf.exp(- alpha * r))
+            return r_at, alpha
     
 #-----------------------------------------------------------------------------#
 def SoftTruncatedResidual(r,scope_name="test",reuse=False):
@@ -555,6 +549,7 @@ def SoftTruncatedResidual(r,scope_name="test",reuse=False):
         tl = hparam_variable("tlparam",[dOutput],tlMode,stddevMode)
         ar = hparam_variable("arparam",[dOutput],arMode,stddevMode)
         al = hparam_variable("alparam",[dOutput],alMode,stddevMode)
+        alpha = hparam_variable("alphaparam",[dOutput],alphaMode,stddevMode)
         # --------------- #
 
         # True or False
@@ -572,24 +567,22 @@ def SoftTruncatedResidual(r,scope_name="test",reuse=False):
 
         # Soft truncated residual nankai, tonankai, tokai
         if methodModel == 3:
+
             soft_r_nk = tf.where(cent_bool_nk, r[:,nI], tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
             soft_r_tnk = tf.where(cent_bool_tnk, r[:,tnI], tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
             soft_r_tk = tf.where(cent_bool_tk, r[:,tI], tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
-            # Soft truncated residual all cell
-            soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
-        
-            return soft_r_at, tr, ar, tl, al, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
         
         elif methodModel == 4:    
-            alpha = hparam_variable("alphaparam",[dOutput],alphaMode,stddevMode)
-            # center sigmoid
-            soft_r_nk = tf.where(cent_bool_nk, TruncatedResidual(r[:,nI],alpha[nI],reuse=reuse), tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
-            soft_r_tnk = tf.where(cent_bool_tnk, TruncatedResidual(r[:,tnI],alpha[tnI],reuse=reuse), tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
-            soft_r_tk = tf.where(cent_bool_tk, TruncatedResidual(r[:,tI],alpha[tI],reuse=reuse), tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
-            # Soft truncated residual all cell
-            soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
+            
+            # soft truncate with sigmoid
+            soft_r_nk = tf.where(cent_bool_nk, 1/(1 + tf.exp(- alpha[nI] * r[:,nI])), tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
+            soft_r_tnk = tf.where(cent_bool_tnk, 1/(1 + tf.exp(- alpha[tnI] * r[:,tnI])), tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
+            soft_r_tk = tf.where(cent_bool_tk, 1/(1 + tf.exp(- alpha[tI] * r[:,tI])), tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
 
-            return soft_r_at, tr, ar, tl, al, alpha, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
+        # Soft truncated residual all cell
+        soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
+            
+        return soft_r_at, tr, ar, tl, al, alpha, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
 
 #-----------------------------------------------------------------------------#
 def EvalAlpha(alpha_base,reuse=False):
@@ -757,12 +750,13 @@ alpha_eval = EvalAlpha(alpha_base,reuse=True)
 # =========================================================================== #
 
 # =================== Soft Truncated residual =============================== #
-if methodModel == 3:
-    res_soft_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, pos_bools, cent_bools  = SoftTruncatedResidual(res,scope_name="SoftTrResidual")
-    res_soft_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,scope_name="SoftTrResidual",reuse=True)
-elif methodModel == 4:
-    res_leaky_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, alpha, pos_bools, cent_bools  = SoftTruncatedResidual(res,scope_name="LeakyTrResidual")
-    res_leaky_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, alpha_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,scope_name="LeakyTrResidual",reuse=True)
+res_soft_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, alpha, pos_bools, cent_bools = SoftTruncatedResidual(res,scope_name="SoftTrResidual")
+res_soft_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, alpha_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,scope_name="SoftTrResidual",reuse=True)
+# =========================================================================== #
+
+# =================== Leaky Truncated residual =============================== #
+res_leaky_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, alpha, pos_bools, cent_bools = SoftTruncatedResidual(res,scope_name="LeakyTrResidual")
+res_leaky_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, alpha_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,scope_name="LeakyTrResidual",reuse=True)
 # =========================================================================== #
 
 # ===================== Reduce truncated residual =========================== #
@@ -899,8 +893,9 @@ trainer_atr_l1 = Optimizer(loss_atr,name_scope="ResidualRegress")
 # for Atr-nets regression/
 trainer_atr_l2 = Optimizer(loss_atr,name_scope="ResidualRegress")
 
+# ※ alpha学習するとき未実装(Error出る)
 # for alpha training in atr-nets
-trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
+#trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
 # for soft ATR-Nets regression
 trainer_soft_atr = Optimizer(loss_soft_atr,name_scope="ResidualRegress")
@@ -1275,7 +1270,7 @@ for i in range(nTraining):
             
     # ======================== Leaky Atr-Nets ================================= #
     elif methodModel == 4:
-
+        pdb.set_trace()
         _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, Residual, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posThreshold, posSlope, negThreshold, negSlope = \
         sess.run([trainer_cls, trainer_leaky_atr, pred_cls_center, cls_op, res_leaky_atr, reg_res, res, loss_cls, loss_leaky_atr, reduce_leaky_res_op, pos_threshold, pos_slope, neg_threshold, neg_slope], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
