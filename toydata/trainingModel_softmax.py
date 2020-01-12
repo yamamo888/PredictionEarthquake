@@ -14,6 +14,7 @@ import pdb
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pylab as plt
+import seaborn as sns
 
 import makingData
 import loadingNankai
@@ -84,7 +85,6 @@ resultPath = "results"
 modelPath = "models"
 visualPath = "visualization"
 imgPath = "images"
-residualPath =  "residual"
 
 if dataMode == 0:
     savePath = "toypickles"
@@ -165,7 +165,7 @@ else:
     # Width class
     beta = np.round((nkMax - nkMin) / nClass,limitdecimal)
     dataName = f"nankai_{trialID}"
-    nTraining = 100
+    nTraining = 200000
     # if evaluate nanakai data == True
     isEval = False
 print(dataName)
@@ -1191,11 +1191,14 @@ for i in range(nTraining):
             #pdb.set_trace()
 
             # ----------------------------------------------------------------------------
+            sns.set()
+
+            residualPath = f"residual{trialID}"
             fig, figInds = plt.subplots(nrows=3,sharex=True)
             for figInd in np.arange(len(figInds)):
                 figInds[figInd].hist(testResidual[:,figInd])
 
-            fig.suptitle(f"Max:{np.max(testResidual,0)}\n  Min:{np.min(testResidual,0)}")
+            fig.suptitle(f"Max:{np.max(testResidual,0)}\n  Min:{np.min(testResidual,0)}\n Mean:{np.mean(testResidual,0)}")
 
             plt.savefig(os.path.join(imgPath,residualPath,f"test{i}.png"))
             plt.close()
@@ -1204,7 +1207,7 @@ for i in range(nTraining):
             for figInd in np.arange(len(figInds)):
                 figInds[figInd].hist(Residual[:,figInd])
 
-            fig.suptitle(f"Max:{np.max(Residual,0)}\n  Min:{np.min(Residual,0)}")
+            fig.suptitle(f"Max:{np.max(Residual,0)}\n  Min:{np.min(Residual,0)}\n Mean:{np.mean(Residual,0)}")
 
             plt.savefig(os.path.join(imgPath,residualPath,f"train{i}.png"))
             plt.close()
@@ -1212,7 +1215,7 @@ for i in range(nTraining):
 
             # save model
             if isSaveModel:
-                savemodelPath =  f"{savePath}soft"
+                savemodelPath =  f"{savePath}soft{trialID}"
                 modelfileName = "model_{}_{}".format(methodModel,trialID)
                 savemodelDir = os.path.join(modelPath,savemodelPath)
                 saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
@@ -1348,9 +1351,9 @@ elif methodModel == 3:
         myPlot.Plot_3D(myData.xTest[:,0],myData.xTest[:,1],myData.yTest,testPred, isPlot=isPlot, savefilePath=savefilePath)
     else:
         savefilePath = f"{i}_{dataName}_{methodModel}_{nClass}_{batchSize}_{trMode}_{arMode}_{tlMode}_{alMode}_{l1Mode}_{l2Mode}_{trialID}"
-        myPlot.Plot_Scatter(myData.yTest,testPred,isPlot=isPlot,savefilePath=savefilePath)
+        #myPlot.Plot_Scatter(myData.yTest,testPred,isPlot=isPlot,savefilePath=savefilePath)
         
-    myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
+    #myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
     
     if isEval:
         with open(os.path.join(evalFullPath,f"{savefilePath}.pkl"),"wb") as fp:
@@ -1368,6 +1371,9 @@ elif methodModel == 3:
             pickle.dump(testPred,fp)
             pickle.dump(testClsCenter,fp)
             pickle.dump(testSoftResPred,fp)
+            pickle.dump(testResidual,fp)
+            pickle.dump(testSoftRes,fp)
+            pickle.dump(testSoftRResPred,fp)
             #pickle.dump(trainTotalVar,fp)
             #pickle.dump(testTotalVar,fp)
             pickle.dump(trainClassLosses,fp)
