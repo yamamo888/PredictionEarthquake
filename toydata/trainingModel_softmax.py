@@ -27,7 +27,7 @@ myArgs = input("Please specify arguments(space separator): ").split()
 if int(myArgs[0]) == 0:
     # 0: toydata var., 1: nankai var.
     dataMode = int(sys.argv[1])
-    # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets, 3: soft atr-nets
+    # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets, 3: soft atr-nets, 4: leaky sigmoid 
     methodModel = int(sys.argv[2])
     # noize of x1, x2
     sigma = float(sys.argv[3])
@@ -38,7 +38,7 @@ if int(myArgs[0]) == 0:
     pNum = int(sys.argv[5])
     # batch size
     batchSize = int(sys.argv[6])
-    # data size
+    # data size 
     nData = int(sys.argv[7])
     # rate of training
     trainRatio = float(sys.argv[8])
@@ -53,7 +53,7 @@ if int(myArgs[0]) == 0:
 elif int(myArgs[0]) == 1:
     # 0: toydata var., 1: nankai var.
     dataMode = int(sys.argv[1])
-    # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets, 3: soft atr
+    # Model type 0: ordinary regression, 1: anhor-based, 2: atr-nets, 3: soft atr, 4: leaky sigmoid
     methodModel = int(sys.argv[2])
     # nankai nClass = 10 or 20 or 50
     nClass = int(sys.argv[3])
@@ -123,8 +123,8 @@ nI = 0
 tnI = 1
 tI = 2
 
-
-if methodModel == 2 and methodModel == 3:
+# regression output sigmoid or fc
+if methodModel == 2 or methodModel == 3 or methodModel == 4:
     isATR = True
 else:
     isATR = False
@@ -506,21 +506,29 @@ def TruncatedResidual(r,alpha_base,reuse=False):
         r_at: trauncated range of residual
         alpha: traincated adjustment parameter
     """
-    with tf.variable_scope('TrResidual') as scope:  
-        if reuse:
-            scope.reuse_variables()
     
-        alpha = hparam_variable("alpha",[dOutput],alphaMode,stddevMode) 
-        alpha_final = tf.multiply(alpha,alpha_base)
+    if methodModel == 3:
+        with tf.variable_scope('TrResidual') as scope:  
+            if reuse:
+                scope.reuse_variables()
         
-        if istrainAlpha:
-            r_at = 1/(1 + tf.exp(- alpha_final * r))
-            return r_at, alpha_final
-        else:
-            r_at = 1/(1 + tf.exp(- alpha * r))
-            return r_at, alpha
+            alpha = hparam_variable("alpha",[dOutput],alphaMode,stddevMode) 
+            alpha_final = tf.multiply(alpha,alpha_base)
+            
+            if istrainAlpha:
+                r_at = 1/(1 + tf.exp(- alpha_final * r))
+                return r_at, alpha_final
+            else:
+                r_at = 1/(1 + tf.exp(- alpha * r))
+                return r_at, alpha
+    
+    elif methodModel == 4:
+        r_at = 1/(1 + tf.exp(- alpha_base * r))
+        pdb.set_trace()
+        return r_at
+    
 #-----------------------------------------------------------------------------#
-def SoftTruncatedResidual(r,reuse=False):
+def SoftTruncatedResidual(r,scope_name="test",reuse=False):
     """
     We used SReLU function, residuals(r) to truncated residuals(soft_r_at).
     
@@ -538,7 +546,7 @@ def SoftTruncatedResidual(r,reuse=False):
     Returns:
         soft_r_at: truncated range of residual with SReLU
     """
-    with tf.variable_scope('SoftTrResidual') as scope:  
+    with tf.variable_scope(scope_name) as scope:  
         if reuse:
             scope.reuse_variables()
         # ---- param ---- #
@@ -563,15 +571,25 @@ def SoftTruncatedResidual(r,reuse=False):
         neg_bool_tk = (tl[tI]>=r[:,tI])
 
         # Soft truncated residual nankai, tonankai, tokai
-        soft_r_nk = tf.where(cent_bool_nk, r[:,nI], tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
-        soft_r_tnk = tf.where(cent_bool_tnk, r[:,tnI], tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
-        soft_r_tk = tf.where(cent_bool_tk, r[:,tI], tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
+        if methodModel == 3:
+            soft_r_nk = tf.where(cent_bool_nk, r[:,nI], tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
+            soft_r_tnk = tf.where(cent_bool_tnk, r[:,tnI], tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
+            soft_r_tk = tf.where(cent_bool_tk, r[:,tI], tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
+            # Soft truncated residual all cell
+            soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
+        
+            return soft_r_at, tr, ar, tl, al, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
+        
+        elif methodModel == 4:    
+            alpha = hparam_variable("alphaparam",[dOutput],alphaMode,stddevMode)
+            # center sigmoid
+            soft_r_nk = tf.where(cent_bool_nk, TruncatedResidual(r[:,nI],alpha[nI],reuse=reuse), tf.where(pos_bool_nk, ar[nI] * r[:,nI] + tr[nI], al[nI] * r[:,nI] + tl[nI]))
+            soft_r_tnk = tf.where(cent_bool_tnk, TruncatedResidual(r[:,tnI],alpha[tnI],reuse=reuse), tf.where(pos_bool_tnk, ar[tnI] * r[:,tnI] + tr[tnI], al[tnI] * r[:,tnI] + tl[tnI]))
+            soft_r_tk = tf.where(cent_bool_tk, TruncatedResidual(r[:,tI],alpha[tI],reuse=reuse), tf.where(pos_bool_tk,  ar[tI] * r[:,tI] + tr[tI], al[tI] * r[:,tI] + tl[tI]))
+            # Soft truncated residual all cell
+            soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
 
-        # Soft truncated residual all cell
-        soft_r_at = tf.concat([tf.expand_dims(soft_r_nk,1),tf.expand_dims(soft_r_tnk,1),tf.expand_dims(soft_r_tk,1)],1)
-
-        # truncated residual, positive indexes each cell, center, negative, slope, index shape=[3,], positive all cell, center, negative, positive each cell, center, negative
-        return soft_r_at, tr, ar, tl, al, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
+            return soft_r_at, tr, ar, tl, al, alpha, (pos_bool_nk,pos_bool_tnk,pos_bool_tk), (cent_bool_nk,cent_bool_tnk,cent_bool_tk)
 
 #-----------------------------------------------------------------------------#
 def EvalAlpha(alpha_base,reuse=False):
@@ -596,6 +614,7 @@ def Reduce(r_at,param,reuse=False):
     Returns:
         pred_r: reduce residual 
     """
+    
     with tf.variable_scope('TrResidual') as scope:  
         if reuse:
             scope.reuse_variables()
@@ -633,6 +652,20 @@ def SoftReduce(sr_at,thr,sr,thl,sl,pos_bools,cent_bools,reuse=False):
         rsoft_r_at = tf.concat([tf.expand_dims(rsoft_r_nk,1),tf.expand_dims(rsoft_r_tnk,1),tf.expand_dims(rsoft_r_tk,1)],1)
         
         return rsoft_r_at
+#-----------------------------------------------------------------------------#
+def SoftLeakyReduce(sr_at,thr,sr,thl,sl,alpha,pos_bools,cent_bools,reuse=False):
+    
+    with tf.variable_scope('LeakyTrResidual') as scope:  
+        if reuse:
+            scope.reuse_variables()
+        
+        rsoft_r_nk = tf.where(cent_bools[nI],1/alpha[nI] * tf.log(sr_at[:,nI]/(1-sr_at[:,nI] + 1e-8)),tf.where(pos_bools[nI],(sr_at[:,nI] - thr[nI])/sr[nI],(sr_at[:,nI] - thl[nI])/sl[nI]))
+        rsoft_r_tnk = tf.where(cent_bools[tnI],1/alpha[tnI] * tf.log(sr_at[:,tnI]/(1-sr_at[:,tnI] + 1e-8)),tf.where(pos_bools[nI],(sr_at[:,tnI] - thr[nI])/sr[nI],(sr_at[:,tnI] - thl[nI])/sl[nI]))
+        rsoft_r_tk = tf.where(cent_bools[tI],1/alpha[tI] * tf.log(sr_at[:,tI]/(1-sr_at[:,tI] + 1e-8)),tf.where(pos_bools[nI],(sr_at[:,tI] - thr[nI])/sr[nI],(sr_at[:,tI] - thl[nI])/sl[nI]))
+ 
+        rsoft_r_at = tf.concat([tf.expand_dims(rsoft_r_nk,1),tf.expand_dims(rsoft_r_tnk,1),tf.expand_dims(rsoft_r_tk,1)],1)
+        
+        return rsoft_r_at    
 #-----------------------------------------------------------------------------#
 def Loss(y,predict,isCE=False):
     """
@@ -724,11 +757,12 @@ alpha_eval = EvalAlpha(alpha_base,reuse=True)
 # =========================================================================== #
 
 # =================== Soft Truncated residual =============================== #
-# 分析終わった以下使う
-#res_soft_atr, pos_inds, cent_inds, neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope = SoftTruncatedResidual(res)
-#res_soft_atr_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test = SoftTruncatedResidual(res_test,reuse=True)
-res_soft_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, pos_bools, cent_bools  = SoftTruncatedResidual(res)
-res_soft_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,reuse=True)
+if methodModel == 3:
+    res_soft_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, pos_bools, cent_bools  = SoftTruncatedResidual(res,scope_name="SoftTrResidual")
+    res_soft_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,scope_name="SoftTrResidual",reuse=True)
+elif methodModel == 4:
+    res_leaky_atr, pos_threshold, pos_slope, neg_threshold, neg_slope, alpha, pos_bools, cent_bools  = SoftTruncatedResidual(res,scope_name="LeakyTrResidual")
+    res_leaky_atr_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, alpha_test, pos_bools_test, cent_bools_test = SoftTruncatedResidual(res_test,scope_name="LeakyTrResidual",reuse=True)
 # =========================================================================== #
 
 # ===================== Reduce truncated residual =========================== #
@@ -745,20 +779,22 @@ pred_y_eval = pred_cls_center_eval + reduce_res_op_eval
 # =========================================================================== #
         
 # ================== Reduce soft truncated residual ========================= #
-# 分析終わったら以下使う
-#reduce_soft_res_op = SoftReduce(reg_res, pos_inds,cent_inds,neg_inds, pos_threshold, pos_slope, neg_threshold, neg_slope, reuse=True)
-#reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_inds_test, cent_inds_test, neg_inds_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, reuse=True)
-#reduce_soft_res_op_eval = SoftReduce(reg_res_eval,alpha_eval,reuse=True)
-
 reduce_soft_res_op = SoftReduce(reg_res, pos_threshold, pos_slope, neg_threshold, neg_slope, pos_bools, cent_bools, reuse=True)
 reduce_soft_res_op_test = SoftReduce(reg_res_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test, pos_bools_test, cent_bools_test, reuse=True)
-
-#pdb.set_trace()
+#reduce_soft_res_op_eval = SoftReduce(reg_res_eval,alpha_eval,reuse=True)
 
 # predicted y by SATR-Nets
 pred_soft_y = pred_cls_center + reduce_soft_res_op
 pred_soft_y_test = pred_cls_center_test + reduce_soft_res_op_test
 #pred_soft_y_eval = pred_cls_center_eval + reduce_res_op_eval
+# =========================================================================== #
+
+# ================== Reduce soft leaky truncated residual =================== #
+reduce_leaky_res_op = SoftLeakyReduce(reg_res, pos_threshold, pos_slope, neg_threshold, neg_slope, alpha, pos_bools, cent_bools, reuse=True)
+reduce_leaky_res_op_test = SoftLeakyReduce(reg_res, pos_threshold, pos_slope, neg_threshold, neg_slope, alpha_test, pos_bools, cent_bools, reuse=True)
+
+pred_leaky_y = pred_cls_center + reduce_leaky_res_op
+pred_leaky_y_test = pred_cls_center_test + reduce_leaky_res_op_test
 # =========================================================================== #
 
 # =============================== Loss ====================================== #
@@ -808,6 +844,10 @@ loss_atr_l2_test = loss_atr_test + res_l2_test
 # Regression Loss for Soft ATR-Nets
 loss_soft_atr = Loss(res_soft_atr,reg_res)
 loss_soft_atr_test = Loss(res_soft_atr_test,reg_res_test)
+
+# Regression Loss for Soft ATR-Nets with sigmoid
+loss_leaky_atr = Loss(res_leaky_atr,reg_res)
+loss_leaky_atr_test = Loss(res_leaky_atr_test,reg_res_test)
 # =========================================================================== #
 #pdb.set_trace()
 # Training alpha loss
@@ -864,6 +904,9 @@ trainer_alpha = Optimizer(loss_alpha,name_scope="TrResidual")
 
 # for soft ATR-Nets regression
 trainer_soft_atr = Optimizer(loss_soft_atr,name_scope="ResidualRegress")
+
+# for soft ATR-Nets regression with leaky
+trainer_leaky_atr = Optimizer(loss_leaky_atr,name_scope="ResidualRegress")
 # =========================================================================== #
 
 
@@ -1153,15 +1196,11 @@ for i in range(nTraining):
     
     # ======================== Soft Atr-Nets ================================= #
     elif methodModel == 3:
-        # 分析終わったら以下使う fixing params
-        #_, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, trainClsLoss, trainSoftResLoss, trainSoftRResPred = \
-        #sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, loss_cls, loss_soft_atr, reduce_soft_res_op],feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
         _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, Residual, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posThreshold, posSlope, negThreshold, negSlope = \
         sess.run([trainer_cls, trainer_soft_atr, pred_cls_center, cls_op, res_soft_atr, reg_res, res, loss_cls, loss_soft_atr, reduce_soft_res_op, pos_threshold, pos_slope, neg_threshold, neg_slope], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
 
         
-        #pdb.set_trace()
         trainPred = trainClsCenter + trainSoftRResPred
         trainTotalLoss = np.mean(np.square(batchY - trainPred))
         trainTotalVar  = np.var(np.square(batchY - trainPred))
@@ -1219,13 +1258,7 @@ for i in range(nTraining):
                 modelfileName = "model_{}_{}".format(methodModel,trialID)
                 savemodelDir = os.path.join(modelPath,savemodelPath)
                 saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
-                """
-                # update checkpoint
-                f = open(os.path.join(savemodelDir,"log.txt"),"a")
-                f.write(modelfileName + "-" +  "{}".format(i) + "\n")
-                f.write("trainLoss:{},trainVar:{},testLoss:{},testVar:{}\n".format(trainTotalLoss,trainTotalVar,testTotalLoss,testTotalVar))
-                f.close()
-                """
+               
             if not flag:
                 trainResLosses,testResLosses = trainSoftResLoss[np.newaxis],testSoftResLoss[np.newaxis]
                 trainClassLosses,testClassLosses = trainClsLoss[np.newaxis],testClsLoss[np.newaxis]
@@ -1240,7 +1273,86 @@ for i in range(nTraining):
         
             myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
             
+    # ======================== Leaky Atr-Nets ================================= #
+    elif methodModel == 4:
+
+        _, _, trainClsCenter, trainCls, trainSoftRes, trainSoftResPred, Residual, trainClsLoss, trainSoftResLoss, trainSoftRResPred, posThreshold, posSlope, negThreshold, negSlope = \
+        sess.run([trainer_cls, trainer_leaky_atr, pred_cls_center, cls_op, res_leaky_atr, reg_res, res, loss_cls, loss_leaky_atr, reduce_leaky_res_op, pos_threshold, pos_slope, neg_threshold, neg_slope], feed_dict={x_cls:batchX, y:batchY, y_label:batchlabelY})
+
+        pdb.set_trace()
+        trainPred = trainClsCenter + trainSoftRResPred
+        trainTotalLoss = np.mean(np.square(batchY - trainPred))
+        trainTotalVar  = np.var(np.square(batchY - trainPred))
             
+        # -------------------- Test ------------------------------------- #
+        if i % testPeriod == 0:
+            #------------
+            # ※ no
+            if isEval: 
+                evalClsCenter, evalResPred, evalAlpha, evalRResPred = \
+                sess.run([pred_cls_center_eval, reg_res_eval, alpha_eval, reduce_res_op_eval],feed_dict={x_cls_eval:myData.xEval,alpha_base:alpha_base_value})
+                evalPred = evalClsCenter + evalRResPred
+                print("----")
+                print(evalPred[:10,0])
+            
+            testClsCenter, testSoftRes, testSoftResPred, testResidual, testClsLoss, testSoftResLoss, testSoftRResPred, testposThreshold, testposSlope, testnegThreshold, testnegSlope = \
+            sess.run([pred_cls_center_test, res_soft_atr_test, reg_res_test, res_test, loss_cls_test, loss_soft_atr_test, reduce_soft_res_op_test, pos_threshold_test, pos_slope_test, neg_threshold_test, neg_slope_test],feed_dict={x_cls_test:myData.xTest, y:myData.yTest, y_label:myData.yTestLabel})
+            
+            # Recover
+            testPred = testClsCenter + testSoftRResPred
+            # total loss (mean) & variance
+            testTotalLoss  = np.mean(np.square(myData.yTest - testPred))
+            testTotalVar  = np.var(np.square(myData.yTest - testPred))
+            print("-----------------------------------")
+            print("itr:%d,trainClsLoss:%f,trainRegLoss:%f, trainTotalLoss:%f, trainTotalVar:%f" % (i,trainClsLoss,trainSoftResLoss, trainTotalLoss, trainTotalVar))
+            print("itr:%d,testClsLoss:%f,testRegLoss:%f, testTotalLoss:%f, testTotalVar:%f" % (i,testClsLoss,testSoftResLoss, testTotalLoss, testTotalVar))
+            #pdb.set_trace()
+
+            # ----------------------------------------------------------------------------
+            sns.set()
+
+            residualPath = f"residual{trialID}"
+            fig, figInds = plt.subplots(nrows=3,sharex=True)
+            for figInd in np.arange(len(figInds)):
+                figInds[figInd].hist(testResidual[:,figInd])
+
+            fig.suptitle(f"Max:{np.max(testResidual,0)}\n  Min:{np.min(testResidual,0)}\n Mean:{np.mean(testResidual,0)}")
+
+            plt.savefig(os.path.join(imgPath,residualPath,f"test{i}.png"))
+            plt.close()
+
+            fig, figInds = plt.subplots(nrows=3,sharex=True)
+            for figInd in np.arange(len(figInds)):
+                figInds[figInd].hist(Residual[:,figInd])
+
+            fig.suptitle(f"Max:{np.max(Residual,0)}\n  Min:{np.min(Residual,0)}\n Mean:{np.mean(Residual,0)}")
+
+            plt.savefig(os.path.join(imgPath,residualPath,f"train{i}.png"))
+            plt.close()
+            # ----------------------------------------------------------------------------
+
+            # save model
+            if isSaveModel:
+                savemodelPath =  f"{savePath}leaky{trialID}"
+                modelfileName = "model_{}_{}".format(methodModel,trialID)
+                savemodelDir = os.path.join(modelPath,savemodelPath)
+                saver.save(sess,os.path.join(savemodelDir,modelfileName),global_step=i)
+               
+            if not flag:
+                trainResLosses,testResLosses = trainSoftResLoss[np.newaxis],testSoftResLoss[np.newaxis]
+                trainClassLosses,testClassLosses = trainClsLoss[np.newaxis],testClsLoss[np.newaxis]
+                trainTotalLosses, testTotalLosses = trainTotalLoss[np.newaxis],testTotalLoss[np.newaxis]
+                flag = True
+            else:
+                trainResLosses,testResLosses = np.hstack([trainResLosses,trainSoftResLoss[np.newaxis]]),np.hstack([testResLosses,testSoftResLoss[np.newaxis]])
+                trainClassLosses,testClassLosses = np.hstack([trainClassLosses,trainClsLoss[np.newaxis]]),np.hstack([testClassLosses,testClsLoss[np.newaxis]])
+                trainTotalLosses,testTotalLosses = np.hstack([trainTotalLosses,trainTotalLoss[np.newaxis]]),np.hstack([testTotalLosses,testTotalLoss[np.newaxis]])
+
+            savefilePath = "{}_{}_{}_{}_{}_{}_{}_{}_{}".format(i,dataName,methodModel,nClass,batchSize,trMode,arMode,tlMode,alMode,l1Mode,l2Mode,trialID)
+        
+            #myPlot.Plot_loss(trainTotalLosses, testTotalLosses, trainClassLosses, testClassLosses, trainResLosses, testResLosses, testPeriod, isPlot=isPlot, methodModel=methodModel, savefilePath=savefilePath)
+    
+        
 # ------------------------- plot loss & toydata ------------------------- #
 if methodModel == 0:
     
@@ -1344,7 +1456,7 @@ elif methodModel == 2:
             pickle.dump(trainTotalLosses,fp)
             pickle.dump(testTotalLosses,fp)
 # ----------------------------------------------------------------------- # 
-elif methodModel == 3: 
+elif methodModel == 3 or methodModel == 4: 
     
     if dataMode == 0:
         savefilePath = f"{dataName}_{methodModel}_{sigma}_{nClass}_{pNum}_{batchSize}_{nData}_{trainRatio}_{trMode}_{arMode}_{tlMode}_{alMode}_{trialID}"
