@@ -81,9 +81,9 @@ def BottomScatter(gt,pred1,pred2,mode="none"):
     line = np.arange(np.min(gt),np.max(gt)+0.001,0.001)
     
     for cell in np.arange(3):
-    	gt = gt[:,cell]
-    	pred1 = pred1[:,cell] 
-    	pred2 = pred2[:,cell] 
+        gt = gt[:,cell]
+        pred1 = pred1[:,cell] 
+        pred2 = pred2[:,cell] 
         
         loss = np.square(gt-pred2)
         under5inds = np.argsort(loss)[::-1][:int(loss.shape[0]*0.05)]
@@ -91,50 +91,50 @@ def BottomScatter(gt,pred1,pred2,mode="none"):
         
         gt = gt[under5inds]
         pred2 = pred2[under5inds]
-    	
+        
         #gt = gt[under25inds]
         #pred2 = pred2[under25inds]
         
         # many plot
-    	if gt.shape[0] > 10:
+        if gt.shape[0] > 10:
              
-    	    for num in np.arange(gt.shape[0]):
-    	        plt.plot(gt[num],pred2[num],color="black",marker="o",linestyle="None",ms=10)
-    	else:
-    	    #pdb.set_trace() 
-    	    colors = []
-    	    for res in residual12:
-    	        if res < 0.000000000:
-    	            colors.append("blue")
-    	        elif res > 0.0000000000:
-    	            colors.append("red")
-    	    
-    	    for num,color in enumerate(colors):
-    	        # scatter oridinary
-    	        #pdb.set_trace()
-    	        plt.plot(gt[num],pred1[num],color="black",marker="${}$".format(str(num)),linestyle="None",ms=20)
-    	        # scatter ancor-based or atr-nets
-    	        plt.plot(gt[num],pred2[num],color=color,marker="${}$".format(str(num)),linestyle="None",ms=20)
-    	# line
-    	plt.plot(line,line,"-",color="gold",linewidth=2)
-    	
-    	#plt.rcParams["font.family"] = "Times New Roman"
-    	plt.rcParams["mathtext.fontset"] = "stix"
-    	   
-    	plt.xlabel('Ground truth',fontsize=24)
-    	plt.ylabel('Predict',fontsize=24)
-    	            
-    	plt.xlim([np.min(gt),np.max(gt)])
-    	
-    	#plt.title(r"{} in {} stand {}".format(mode,cellname,standName)) 
-    	#plt.title(r"Observed-Predicted of {}".format(standName),fontsize=24) 
-    	#fig.subplots_adjust(left=0.2,bottom=0.2)
-    	#plt.tick_params(labelsize=18)
-    	#plt.legend()
-    	
-    	savePath = os.path.join(f"{mode}_{cell}.png")    
-    	plt.savefig(savePath)
-    	plt.close()
+            for num in np.arange(gt.shape[0]):
+                plt.plot(gt[num],pred2[num],color="black",marker="o",linestyle="None",ms=10)
+        else:
+            #pdb.set_trace() 
+            colors = []
+            for res in residual12:
+                if res < 0.000000000:
+                    colors.append("blue")
+                elif res > 0.0000000000:
+                    colors.append("red")
+            
+            for num,color in enumerate(colors):
+                # scatter oridinary
+                #pdb.set_trace()
+                plt.plot(gt[num],pred1[num],color="black",marker="${}$".format(str(num)),linestyle="None",ms=20)
+                # scatter ancor-based or atr-nets
+                plt.plot(gt[num],pred2[num],color=color,marker="${}$".format(str(num)),linestyle="None",ms=20)
+        # line
+        plt.plot(line,line,"-",color="gold",linewidth=2)
+        
+        #plt.rcParams["font.family"] = "Times New Roman"
+        plt.rcParams["mathtext.fontset"] = "stix"
+           
+        plt.xlabel('Ground truth',fontsize=24)
+        plt.ylabel('Predict',fontsize=24)
+                    
+        plt.xlim([np.min(gt),np.max(gt)])
+        
+        #plt.title(r"{} in {} stand {}".format(mode,cellname,standName)) 
+        #plt.title(r"Observed-Predicted of {}".format(standName),fontsize=24) 
+        #fig.subplots_adjust(left=0.2,bottom=0.2)
+        #plt.tick_params(labelsize=18)
+        #plt.legend()
+        
+        savePath = os.path.join(f"{mode}_{cell}.png")    
+        plt.savefig(savePath)
+        plt.close()
 
     #ToGoogle(dataName=savePath,dirName=gName)
     """
